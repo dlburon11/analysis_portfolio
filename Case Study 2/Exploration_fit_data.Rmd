@@ -1,0 +1,813 @@
+
+
+
+```{r}
+# 1. What are some trends in smart device usage?
+# 2. How could these trends apply to Bellabeat customers?
+# 3. How could these trends help inuence Bellabeat marketing strategy?
+
+
+```
+
+
+
+### Load
+```{r}
+
+
+# Install and load the corrplot package for better visualization, if not already installed
+if (!requireNamespace("corrplot", quietly = TRUE)) {
+  install.packages("corrplot")
+}
+library(corrplot)
+
+# Load the readr package from tidyverse
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(scales)
+library(Hmisc)
+library(tidyr)
+library(lubridate)
+
+# Load the data into R using base R's read.csv function
+file_path <- "/Users/danielburon/Desktop/Data Science/Google Cert/Case Studies/Case_Study_2/Fitabase_Data_3_12_16_to_4_11_16/dailyActivity_merged.csv"
+
+# Load the data using read_csv from tidyverse
+daily_activity_data <- read_csv(file_path)
+
+
+```
+
+# Explore
+```{r}
+
+# Check the structure of the data
+str(daily_activity_data)
+
+# View the first few rows of the data to understand the format and type of data
+head(daily_activity_data)
+
+# Get a summary of the dataset to understand basic statistics
+summary(daily_activity_data)
+
+# Check for missing values in the dataset
+sum(is.na(daily_activity_data))
+
+# Check the column names in your dataset
+colnames(daily_activity_data)
+
+# Convert ActivityDate to Date if needed
+daily_activity_data$ActivityDate <- as.Date(daily_activity_data$ActivityDate, format="%m/%d/%Y")
+  
+# Example of summarizing data: calculating the average number of steps per day
+average_steps_per_day <- daily_activity_data %>%
+ group_by(ActivityDate) %>%
+ dplyr::summarize(AverageSteps = ceiling(mean(TotalSteps, na.rm = TRUE)))
+
+# Example visualization: Histogram of total steps to check distribution
+ggplot(daily_activity_data, aes(x = TotalSteps)) +
+  geom_histogram(binwidth = 1000, fill = "blue", color = "black") +
+  labs(title = "Distribution of Total Steps", x = "Total Steps", y = "Frequency")
+
+# Example visualization: Histogram of total steps to check distribution
+ggplot(daily_activity_data, aes(x = Calories)) +
+  geom_histogram(binwidth = 1000, fill = "red", color = "black") +
+  labs(title = "Distribution of Total Steps", x = "Total Steps", y = "Frequency")
+
+# Scatter plot to see the relationship between total steps and total distance
+ggplot(daily_activity_data, aes(x = TotalSteps, y = TotalDistance)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Total Steps vs. Total Distance", x = "Total Steps", y = "Total Distance")
+
+#######################
+
+# Summarize the data
+distance_sums <- data.frame(
+  Category = c("TrackerDistance", "LoggedActivitiesDistance"),
+  Total = c(
+    sum(daily_activity_data$TrackerDistance, na.rm = TRUE),
+    sum(daily_activity_data$LoggedActivitiesDistance, na.rm = TRUE)
+  )
+)
+
+# Create the pie chart
+ggplot(distance_sums, aes(x = "", y = Total, fill = Category)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Distribution of Distance Tracking") +
+  theme_void() +
+  geom_text(aes(label = comma(Total)), 
+            position = position_stack(vjust = 0.5), color = "white") +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+```
+
+### Descriptive Stats
+```{r}
+
+################################################################################ Time Window
+########################
+daily_activity_data$ActivityDate <- as.Date(daily_activity_data$ActivityDate, format="%m/%d/%Y")
+class(daily_activity_data$ActivityDate)
+# Find the earliest (start) date
+ start_date <- min(daily_activity_data$ActivityDate, na.rm = TRUE)
+
+ # Find the latest (end) date
+ end_date <- max(daily_activity_data$ActivityDate, na.rm = TRUE)
+
+ # Output the results
+ start_date
+ end_date
+
+ class(start_date)  # Should return "Date"
+class(end_date)    # Should return "Date"
+########################
+# Reformat the date
+start_date <- format(start_date, "%B %d, %Y")
+end_date <- format(end_date, "%B %d, %Y")
+
+# Print the reformatted date
+print(start_date)
+print(end_date)
+
+################################################################################ Datapoints
+# Calculate the total number of data points
+total_data_points <- comma(nrow(daily_activity_data) * ncol(daily_activity_data))
+
+```
+
+#### Explore
+```{r}
+
+# - **Missing Values:** Check for any missing values and decide how to handle them.
+colSums(is.na(daily_activity_data))
+
+################################################################################ Time Series
+# Time series plot for TotalSteps
+ggplot(daily_activity_data, aes(x = ActivityDate, y = TotalSteps)) +
+  geom_line() +
+  labs(title = "Total Steps Over Time", x = "Date", y = "Total Steps")
+
+# Time series plot for Calories
+ggplot(daily_activity_data, aes(x = ActivityDate, y = Calories)) +
+  geom_line() +
+  labs(title = "Calories Burned Over Time", x = "Date", y = "Calories")
+
+################################################################################ Weekly Patterns
+cor(daily_activity_data$TotalSteps, daily_activity_data$Calories, use = "complete.obs")
+cor(daily_activity_data$TotalSteps, daily_activity_data$TotalDistance, use = "complete.obs")
+cor(daily_activity_data$TotalDistance, daily_activity_data$Calories, use = "complete.obs")
+
+################################################################################ Visualize Relationships
+# Scatter plot for TotalSteps vs. Calories
+ggplot(daily_activity_data, aes(x = TotalSteps, y = Calories)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Total Steps vs. Calories", x = "Total Steps", y = "Calories")
+
+################################################################################ Activity Intensity Trends
+# Histogram for activity minutes
+ggplot(daily_activity_data) +
+  geom_histogram(aes(x = VeryActiveMinutes), binwidth = 5, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Distribution of Very Active Minutes", x = "Minutes", y = "Frequency")
+
+ggplot(daily_activity_data) +
+  geom_histogram(aes(x = FairlyActiveMinutes), binwidth = 5, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Distribution of Fairly Active Minutes", x = "Minutes", y = "Frequency")
+
+ggplot(daily_activity_data) +
+  geom_histogram(aes(x = LightlyActiveMinutes), binwidth = 5, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Distribution of Lightly Active Minutes", x = "Minutes", y = "Frequency")
+
+ggplot(daily_activity_data) +
+  geom_histogram(aes(x = SedentaryMinutes), binwidth = 5, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Distribution of Sedentary Active Minutes", x = "Minutes", y = "Frequency")
+
+################### Active vs Light Comparison
+
+# Filter out zero and negative values
+filtered_data <- daily_activity_data %>%
+  filter(VeryActiveMinutes > 0, LightlyActiveMinutes > 0)
+
+################# Without Legend
+# Overlay histogram for VeryActiveMinutes and LightlyActiveMinutes
+ggplot(filtered_data) +
+  geom_histogram(aes(x = VeryActiveMinutes), binwidth = 5, fill = "blue", alpha = 0.5) +
+  geom_histogram(aes(x = LightlyActiveMinutes), binwidth = 5, fill = "green", alpha = 0.5) +
+  labs(title = "Overlay of Very Active and Lightly Active Minutes", 
+       x = "Minutes", 
+       y = "Frequency") +
+  theme_minimal()
+
+################# With Legend
+# Reshape data for plotting
+long_data <- filtered_data %>%
+  pivot_longer(cols = c(VeryActiveMinutes, LightlyActiveMinutes), names_to = "ActivityType", values_to = "Minutes")
+
+ggplot(long_data, aes(x = Minutes, fill = ActivityType)) +
+  geom_histogram(binwidth = 5, alpha = 0.5, position = "identity") +
+  labs(title = "Overlay of Very Active and Lightly Active Minutes", 
+       x = "Minutes", 
+       y = "Frequency", 
+       fill = "Activity Type") +
+  scale_fill_manual(values = c("VeryActiveMinutes" = "blue", "LightlyActiveMinutes" = "green")) +
+  theme_minimal()
+
+# Calculate medians
+median_very_active <- median(filtered_data$VeryActiveMinutes, na.rm = TRUE)
+median_lightly_active <- median(filtered_data$LightlyActiveMinutes, na.rm = TRUE)
+
+# Output the medians
+median_very_active
+median_lightly_active
+
+
+################################################################################ Time Allocation
+
+```
+### pie plot
+```{r}
+
+# First, calculate the total sum for each activity type
+activity_sums <- data.frame(
+  ActivityType = c("VeryActiveMinutes", "FairlyActiveMinutes", "LightlyActiveMinutes", "SedentaryMinutes"),
+  Total = c(
+    sum(daily_activity_data$VeryActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$FairlyActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$LightlyActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$SedentaryMinutes, na.rm = TRUE)
+  )
+)
+
+# Create the pie chart
+ggplot(activity_sums, aes(x = "", y = Total, fill = ActivityType)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Distribution of Activity Types", fill = "Activity Type") +
+  theme_void()
+
+######
+# First, calculate the total sum for each activity type
+activity_sums <- data.frame(
+  ActivityType = c("VeryActiveMinutes", "FairlyActiveMinutes", "LightlyActiveMinutes", "SedentaryMinutes"),
+  Total = c(
+    sum(daily_activity_data$VeryActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$FairlyActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$LightlyActiveMinutes, na.rm = TRUE),
+    sum(daily_activity_data$SedentaryMinutes, na.rm = TRUE)
+  )
+)
+
+# Calculate percentages
+activity_sums$Percentage <- activity_sums$Total / sum(activity_sums$Total) * 100
+
+# Format legend labels
+activity_sums$LegendLabel <- paste(activity_sums$ActivityType, "(", round(activity_sums$Percentage, 1), "%)", sep = "")
+
+# Create the pie chart
+ggplot(activity_sums, aes(x = "", y = Total, fill = LegendLabel)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Distribution of Activity Types", fill = "Activity Type") +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA), 
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+```
+
+### Bar plot for distance
+```{r}
+
+library(reshape2)
+
+# Select only the columns of interest and melt the dataset
+distance_data <- daily_activity_data[, c("TotalDistance", 
+                                         "VeryActiveDistance", 
+                                         "ModeratelyActiveDistance", 
+                                         "LightActiveDistance", 
+                                         "SedentaryActiveDistance")]
+
+# Filter out rows where SedentaryActiveDistance is 0
+filtered_data <- daily_activity_data[daily_activity_data$SedentaryActiveDistance > 0, ]
+
+# Select only the columns of interest and melt the dataset
+distance_data <- filtered_data[, c("TotalDistance", 
+                                   "VeryActiveDistance", 
+                                   "ModeratelyActiveDistance", 
+                                   "LightActiveDistance", 
+                                   "SedentaryActiveDistance")]
+
+# Make the data long format
+distance_data_melt <- melt(distance_data, variable.name = "DistanceType", value.name = "Distance")
+
+# Create a bar plot with colors
+ggplot(distance_data_melt, aes(x = DistanceType, y = Distance, fill = DistanceType)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3") + # Use a Brewer palette
+  labs(title = "Activity Distances (Sedentary Active Distance > 0)", 
+       x = "Type of Distance", 
+       y = "Distance") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+#### Correlation Matrix
+```{r}
+
+# Select only numerical columns for correlation matrix
+numeric_columns <- daily_activity_data[, c("TotalSteps", "TotalDistance", "TrackerDistance", 
+                                           "LoggedActivitiesDistance", "VeryActiveDistance", 
+                                           "ModeratelyActiveDistance", "LightActiveDistance", 
+                                           "SedentaryActiveDistance", "VeryActiveMinutes", 
+                                           "FairlyActiveMinutes", "LightlyActiveMinutes", 
+                                           "SedentaryMinutes", "Calories")]
+
+# Compute the correlation matrix
+cor_matrix <- cor(numeric_columns, use = "complete.obs")
+
+# Output the correlation matrix
+print(cor_matrix)
+
+# Plot the correlation matrix
+corrplot(cor_matrix, method = "circle", type = "upper", 
+         tl.col = "black", tl.srt = 45, 
+         title = "Correlation Matrix of Activity Data", mar = c(0,0,1,0))
+
+
+```
+
+### Viz the top Correlations
+```{r}
+
+# High Positive Correlations
+
+# Plot: TotalSteps vs. TotalDistance
+ggplot(daily_activity_data, aes(x = TotalSteps, y = TotalDistance)) +
+  geom_point(alpha = 0.5, color = 'blue') +
+  geom_smooth(method = 'lm', color = 'darkblue', se = FALSE) +
+  labs(title = "Total Steps vs. Total Distance", x = "Total Steps", y = "Total Distance")
+
+# Plot: VeryActiveMinutes vs. VeryActiveDistance
+ggplot(daily_activity_data, aes(x = VeryActiveMinutes, y = VeryActiveDistance)) +
+  geom_point(alpha = 0.5, color = 'green') +
+  geom_smooth(method = 'lm', color = 'darkgreen', se = FALSE) +
+  labs(title = "Very Active Minutes vs. Very Active Distance", x = "Very Active Minutes", y = "Very Active Distance")
+
+# Low to Moderate Correlations
+
+# Plot: ModeratelyActiveDistance vs. FairlyActiveMinutes
+ggplot(daily_activity_data, aes(x = ModeratelyActiveDistance, y = FairlyActiveMinutes)) +
+  geom_point(alpha = 0.5, color = 'orange') +
+  geom_smooth(method = 'lm', color = 'darkorange', se = FALSE) +
+  labs(title = "Moderately Active Distance vs. Fairly Active Minutes", x = "Moderately Active Distance", y = "Fairly Active Minutes")
+
+# Plot: Calories vs. TotalSteps
+ggplot(daily_activity_data, aes(x = TotalSteps, y = Calories)) +
+  geom_point(alpha = 0.5, color = 'purple') +
+  geom_smooth(method = 'lm', color = '#5D3FD3', se = FALSE) +  # Custom hex color for dark purple
+  labs(title = "Calories vs. Total Steps", x = "Total Steps", y = "Calories")
+
+# Plot: Calories vs. VeryActiveMinutes
+ggplot(daily_activity_data, aes(x = VeryActiveMinutes, y = Calories)) +
+  geom_point(alpha = 0.5, color = 'red') +
+  geom_smooth(method = 'lm', color = 'darkred', se = FALSE) +
+  labs(title = "Calories vs. Very Active Minutes", x = "Very Active Minutes", y = "Calories")
+
+```
+
+
+```{r}
+# 1. What are some trends in sma device usage? 2. How could these trends apply to Bellabeat customers? 3. How could these trends help inuence Bellabeat marketing strategy?
+
+# Time series plot for total steps
+ggplot(daily_activity_data, aes(x = as.Date(ActivityDate), y = TotalSteps)) +
+  geom_line() +
+  labs(title = "Total Steps Over Time", x = "Date", y = "Total Steps")
+
+# Distribution of activity minutes
+ggplot(daily_activity_data) +
+  geom_histogram(aes(x = VeryActiveMinutes), binwidth = 5, fill = "blue", alpha = 0.7) +
+  geom_histogram(aes(x = SedentaryMinutes), binwidth = 30, fill = "red", alpha = 0.5) +
+  labs(title = "Distribution of Very Active and Sedentary Minutes", x = "Minutes", y = "Frequency")
+
+```
+
+
+
+######################
+######################
+######################
+######################
+######################
+
+
+HR Addition: Load / Clean
+```{r}
+
+# Step 1: Load the data
+heartrate_data <- read.csv("/Users/danielburon/Desktop/Data Science/Google Cert/Case Studies/Case_Study_2/Fitabase_Data_3_12_16_to_4_11_16/heartrate_seconds_merged.csv")
+
+# Step 2: Explore the data
+# View the first few rows
+head(heartrate_data)
+
+# Summary statistics of the columns
+summary(heartrate_data)
+
+# Structure of the dataset
+str(heartrate_data)
+
+# Step 3: Clean the data
+# Check for and count missing values
+sum(is.na(heartrate_data))
+
+# Remove duplicate rows based on all columns
+heartrate_data <- heartrate_data %>% distinct()
+
+# If needed, parse Time column to Date-Time format
+heartrate_data$Time <- as.POSIXct(heartrate_data$Time, format="%m/%d/%Y %H:%M:%S %p")
+
+# Verify the changes
+head(heartrate_data)
+
+
+```
+
+######################################## Merge with HR DATA 
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(lubridate)
+
+# Extract date from the Time column
+heartrate_data$Date <- as.Date(heartrate_data$Time)
+
+# Convert ActivityDate to Date format; assuming it's in mm/dd/yyyy
+daily_activity_data$ActivityDate <- as.Date(daily_activity_data$ActivityDate, format="%m/%d/%Y")
+
+# Merge the datasets on Id and Date
+merged_data <- merge(heartrate_data, daily_activity_data, by.x = c("Id", "Date"), by.y = c("Id", "ActivityDate"), all = TRUE)
+
+# View merged data
+head(merged_data, 100)
+
+
+
+
+
+```
+
+#### Proper clean and load
+```{r}
+# Step 1: Clean the data
+# Remove duplicate rows
+heartrate_data <- heartrate_data %>% distinct()
+
+# Parse Time column to Date-Time format
+heartrate_data$Time <- as.POSIXct(heartrate_data$Time, format="%m/%d/%Y %H:%M:%S %p")
+
+# Extract date from the Time column
+heartrate_data$Date <- as.Date(heartrate_data$Time)
+
+# Step 2: Calculate the median heart rate for each day per user
+daily_median_heartrate <- heartrate_data %>%
+  group_by(Id, Date) %>%
+  summarise(MedianHR = median(Value, na.rm = TRUE))
+
+# Step 3: Convert ActivityDate to Date format in daily_activity_data
+daily_activity_data$ActivityDate <- as.Date(daily_activity_data$ActivityDate, format="%m/%d/%Y")
+
+# Step 4: Merge the datasets on Id and Date
+merged_data <- merge(daily_activity_data, daily_median_heartrate, 
+                     by.x = c("Id", "ActivityDate"), by.y = c("Id", "Date"), 
+                     all.x = TRUE)
+
+# View merged data
+head(merged_data, 100)
+
+
+```
+
+### Descriptives
+```{r}
+# Descriptive statistics for heart rate
+heart_rate_stats <- merged_data %>%
+  summarise(
+    mean_hr = mean(MedianHR, na.rm = TRUE),
+    median_hr = median(MedianHR, na.rm = TRUE),
+    min_hr = min(MedianHR, na.rm = TRUE),
+    max_hr = max(MedianHR, na.rm = TRUE),
+    sd_hr = sd(MedianHR, na.rm = TRUE)
+  )
+
+print(heart_rate_stats)
+
+
+# Plot heart rate over time
+ggplot(merged_data, aes(x = ActivityDate, y = MedianHR)) +
+  geom_line(color = "blue") +
+  labs(title = "Heart Rate Over Time", x = "Time", y = "Heart Rate") +
+  theme_minimal()
+
+# Calculate average heart rate by activity levels
+activity_summary <- merged_data %>%
+  group_by(Id) %>%
+  summarise(
+    avg_hr_very_active = mean(MedianHR[VeryActiveMinutes > 0], na.rm = TRUE),
+    avg_hr_fairly_active = mean(MedianHR[FairlyActiveMinutes > 0], na.rm = TRUE),
+    avg_hr_lightly_active = mean(MedianHR[LightlyActiveMinutes > 0], na.rm = TRUE)
+  )
+
+print(activity_summary)
+
+
+###############################
+
+# Select only the relevant numerical columns for the correlation matrix, including MedianHR
+numeric_columns_with_hr <- merged_data[, c("TotalSteps", "TotalDistance", "TrackerDistance", 
+                                           "LoggedActivitiesDistance", "VeryActiveDistance", 
+                                           "ModeratelyActiveDistance", "LightActiveDistance", 
+                                           "SedentaryActiveDistance", "VeryActiveMinutes", 
+                                           "FairlyActiveMinutes", "LightlyActiveMinutes", 
+                                           "SedentaryMinutes", "Calories", "MedianHR")]
+
+# Compute the correlation matrix including MedianHR
+cor_matrix_with_hr <- cor(numeric_columns_with_hr, use = "complete.obs")
+
+# Output the new correlation matrix
+print(cor_matrix_with_hr)
+
+# Plot the updated correlation matrix with HR
+corrplot(cor_matrix_with_hr, method = "circle", type = "upper", 
+         tl.col = "black", tl.srt = 45, 
+         title = "Correlation Matrix of Activity Data with Median Heart Rate", mar = c(0,0,1,0))
+
+#############
+# Extract the correlation value between MedianHR and VeryActiveMinutes
+cor_value <- cor_matrix_with_hr["MedianHR", "SedentaryActiveDistance"]
+cor_value <- cor_matrix_with_hr["MedianHR", "LightActiveDistance"]
+
+# Print the correlation value
+print(cor_value)
+
+
+# Plot: Calories vs. VeryActiveMinutes
+ggplot(merged_data, aes(x = SedentaryActiveDistance, y = MedianHR)) +
+  geom_point(alpha = 0.5, color = 'red') +
+  geom_smooth(method = 'lm', color = 'darkred', se = FALSE) +
+  labs(title = "Calories vs. Very Active Minutes", x = "Very Active Minutes", y = "Calories")
+
+```
+
+
+#### Correlation Matrix
+```{r}
+
+
+
+
+```
+
+
+###########################################################################
+###########################################################################
+########################################################################### Incorrect!!!!
+###########################################################################
+###########################################################################
+
+
+
+#### HR Explore
+```{r}
+
+
+########################
+# Correlation with TotalSteps
+correlation <- cor(merged_data$MedianHR, merged_data$TotalSteps, use = "complete.obs")
+
+#######################
+# Plot heart rate over time
+ggplot(merged_data, aes(x = ActivityDate, y = MedianHR)) +
+  geom_line() +
+  labs(title = "Heart Rate Over Time", x = "Time", y = "Heart Rate")
+
+# Heart rate vs TotalSteps scatter plot
+ggplot(merged_data, aes(x = TotalSteps, y = MedianHR)) +
+  geom_point(alpha = 0.3) +
+  labs(title = "Heart Rate vs. Total Steps", x = "Total Steps", y = "Heart Rate")
+
+# Plot heart rate over time
+ggplot(merged_data, aes(x = ActivityDate, y = MedianHR)) +
+  geom_line(color = "blue") +
+  labs(title = "Heart Rate Over Time", x = "Time", y = "Heart Rate") +
+  theme_minimal()
+
+# Plot heart rate over time
+ggplot(merged_data, aes(x = Calories, y = MedianHR)) +
+  geom_line(color = "blue") +
+  labs(title = "Heart Rate Over Time", x = "Time", y = "Heart Rate") +
+  theme_minimal()
+
+######
+# Handle missing MedianHRs and filter date range if needed
+# Assume `merged_data` from earlier contains the relevant columns and data
+# Filter and calculate median heart rates for each activity type within a specific date range
+activity_hr_medians <- merged_data %>%
+  filter(ActivityDate >= as.Date("2016-03-25") & ActivityDate <= as.Date("2016-04-11")) %>%
+  group_by(ActivityDate) %>%
+  summarise(
+    median_hr_very_active = median(MedianHR[VeryActiveMinutes > 0], na.rm = TRUE),
+    median_hr_fairly_active = median(MedianHR[FairlyActiveMinutes > 0], na.rm = TRUE),
+    median_hr_lightly_active = median(MedianHR[LightlyActiveMinutes > 0], na.rm = TRUE),
+    median_hr_sedentary = median(MedianHR[SedentaryMinutes > 0], na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = starts_with("median_hr"), names_to = "ActivityLevel", values_to = "MedianHR") %>%
+  drop_na()  # Remove rows with NA median heart rates
+
+# Create a line plot
+ggplot(activity_hr_medians, aes(x = ActivityDate, y = MedianHR, color = ActivityLevel)) +
+  geom_line() +
+  labs(title = "Daily Median Heart Rate by Activity Level", x = "Date", y = "Median Heart Rate") +
+  scale_color_manual(
+    values = c("median_hr_very_active" = "red", 
+               "median_hr_fairly_active" = "green", 
+               "median_hr_lightly_active" = "blue", 
+               "median_hr_sedentary" = "purple"),
+    labels = c("Very Active", "Fairly Active", "Lightly Active", "Sedentary")
+  ) +
+  theme_minimal()
+
+
+############# Total Distance
+
+totalDistance_hr_medians <- merged_data %>%
+  filter(ActivityDate >= as.Date("2016-03-25") & ActivityDate <= as.Date("2016-04-11")) %>%
+  group_by(ActivityDate) %>%
+  summarise(
+    median_hr_very_active = median(MedianHR[TotalDistance > 0], na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = starts_with("median_hr"), names_to = "ActivityLevel", values_to = "MedianHR") %>%
+  drop_na()  # Remove rows with NA median heart rates
+
+# Create a line plot
+ggplot(totalDistance_hr_medians, aes(x = ActivityDate, y = MedianHR, color = ActivityLevel)) +
+  geom_line() +
+  labs(title = "Daily Median Heart Rate by Activity Level", x = "Date", y = "Median Heart Rate") +
+  scale_color_manual(
+    values = c("median_hr_very_active" = "orange"),
+    labels = c("Total Distance")
+  ) +
+  theme_minimal()
+
+
+```
+
+
+
+
+
+
+### HR Explore: Distance HR Calories
+```{r}
+# Filter out rows with zero distances
+filtered_data_distance <- merged_data %>%
+  filter(VeryActiveDistance > 0 | ModeratelyActiveDistance > 0 | LightActiveDistance > 0 | SedentaryActiveDistance > 0)
+
+# Calculate median heart rate per day for each distance level
+distance_hr_medians <- filtered_data_distance %>%
+  group_by(ActivityDate) %>%
+  summarise(
+    median_hr_very_active = median(MedianHR[VeryActiveDistance > 0], na.rm = TRUE),
+    median_hr_moderately_active = median(MedianHR[ModeratelyActiveDistance > 0], na.rm = TRUE),
+    median_hr_light_active = median(MedianHR[LightActiveDistance > 0], na.rm = TRUE),
+    median_hr_sedentary_active = median(MedianHR[SedentaryActiveDistance > 0], na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = starts_with("median_hr"), names_to = "DistanceLevel", values_to = "MedianHR") %>%
+  drop_na()
+
+# Create a line plot
+ggplot(distance_hr_medians, aes(x = ActivityDate, y = MedianHR, color = DistanceLevel)) +
+  geom_line() +
+  labs(title = "Daily Median Heart Rate by Distance Level", x = "ActivityDate", y = "Median Heart Rate") +
+  scale_color_manual(
+    values = c("median_hr_very_active" = "red", 
+               "median_hr_moderately_active" = "green", 
+               "median_hr_light_active" = "blue", 
+               "median_hr_sedentary_active" = "purple"),
+    labels = c("Very Active", "Moderately Active", "Light Active", "Sedentary Active")
+  ) +
+  theme_minimal()
+
+
+```
+
+### Distance / HR / Calories
+```{r}
+
+# Calculate median heart rate and calories per day for each distance level
+distance_hr_calories_medians <- filtered_data_distance %>%
+  group_by(Date) %>%
+  summarise(
+    median_hr_very_active = median(Value[VeryActiveDistance > 0], na.rm = TRUE),
+    median_hr_moderately_active = median(Value[ModeratelyActiveDistance > 0], na.rm = TRUE),
+    median_hr_light_active = median(Value[LightActiveDistance > 0], na.rm = TRUE),
+    median_hr_sedentary_active = median(Value[SedentaryActiveDistance > 0], na.rm = TRUE),
+    median_calories_very_active = median(Calories[VeryActiveDistance > 0], na.rm = TRUE),
+    median_calories_moderately_active = median(Calories[ModeratelyActiveDistance > 0], na.rm = TRUE),
+    median_calories_light_active = median(Calories[LightActiveDistance > 0], na.rm = TRUE),
+    median_calories_sedentary_active = median(Calories[SedentaryActiveDistance > 0], na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = starts_with("median_hr"), names_to = "DistanceLevel", values_to = "MedianHR") %>%
+  pivot_longer(cols = starts_with("median_calories"), names_to = "CaloriesLevel", values_to = "MedianCalories") %>%
+  drop_na()
+
+# Plot
+ggplot(distance_hr_calories_medians, aes(x = Date)) +
+  geom_line(aes(y = MedianHR, color = DistanceLevel), size = 1) +
+  geom_line(aes(y = MedianCalories / max(MedianCalories) * max(MedianHR), linetype = CaloriesLevel), size = 1, alpha = 0.7) +
+  labs(title = "Daily Median Heart Rate and Calories by Distance Level",
+       x = "Date",
+       y = "Median Heart Rate / Rescaled Calories") +
+  scale_color_manual(
+    values = c("median_hr_very_active" = "red", 
+               "median_hr_moderately_active" = "green", 
+               "median_hr_light_active" = "blue", 
+               "median_hr_sedentary_active" = "purple"),
+    labels = c("Very Active", "Moderately Active", "Light Active", "Sedentary Active")
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+
+
+###########################################################################
+###########################################################################
+########################################################################### Old
+###########################################################################
+###########################################################################
+
+
+### Explore Clean
+```{r}
+# Load necessary libraries
+library(readr)
+library(dplyr)
+
+# List CSV files
+folder_path <- "/Users/danielburon/Desktop/Data Science/Google Cert/Case Studies/Case_Study_2/Fitabase_Data_3_12_16_to_4_11_16"
+files <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
+
+# Define possible column names for date/time
+possible_time_columns <- c("date", "Date", "Time", "ActivityHour", "ActivityMinute")
+
+# Function to normalize time columns across datasets
+normalize_time_columns <- function(data) {
+  time_col <- intersect(names(data), possible_time_columns)
+  if (length(time_col) > 0) {
+    # Rename time column to a standard name if it exists
+    colnames(data)[which(names(data) %in% time_col)] <- "StandardTime"
+  }
+  return(data)
+}
+
+# Read and normalize datasets
+data_list <- lapply(files, function(file) {
+  df <- read_csv(file)
+  normalize_time_columns(df)
+})
+
+# Filter datasets that have the 'StandardTime' column
+data_list <- Filter(function(data) "StandardTime" %in% names(data), data_list)
+
+# Identify common columns including the normalized time column
+if (length(data_list) > 0) {
+  common_columns <- Reduce(intersect, lapply(data_list, names))
+  common_columns <- unique(c(common_columns, "StandardTime"))
+  
+  # Merge data by common columns, especially "StandardTime" and "Id"
+  merged_data <- Reduce(function(x, y) {
+    full_join(x, y, by = intersect(names(x), names(y)))
+  }, data_list)
+  
+  # Print results
+  print(head(merged_data))
+} else {
+  stop("No datasets with 'StandardTime' found for merging.")
+}
+
+```
+

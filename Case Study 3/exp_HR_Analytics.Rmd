@@ -1,0 +1,2136 @@
+
+
+
+```{r}
+# Conclusion
+# Doc / Manipulation
+
+# Equity: 
+##each position and RaceDesc / Salary
+## Job Fair employees vs non Job Fair / Salary
+
+```
+
+
+
+
+```{r}
+
+# Is there any relationship between who a person works for and their performance score?
+# What is the overall diversity profile of the organization?
+# What are our best recruiting sources if we want to ensure a diverse organization?
+# Can we predict who is going to terminate and who isn't? What level of accuracy can we achieve on this?
+# Are there areas of the company where pay is not equitable?
+
+
+```
+
+
+
+
+```{r}
+
+# Load the readr package from tidyverse
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(scales)
+library(Hmisc)
+library(tidyr)
+library(lubridate)
+library(corrplot)
+library(tidyr)
+library(vegan) # For diversity index
+library(ineq)
+library(flextable)
+library(caret)
+library(randomForest)
+library(DescTools)
+library(forecast)
+library(car)
+
+# Load the data into R using base R's read.csv function
+file_path <- "/Users/danielburon/Desktop/Data Science/Google Cert/Case Studies/Case_Study_3/HRDataset_v14.csv"
+
+# Load the data using read_csv from tidyverse
+HRDataset_v14 <- read_csv(file_path)
+
+
+
+
+```
+
+
+# Explore
+```{r}
+# Check the structure of the data
+str(HRDataset_v14)
+
+# View the first few rows of the data to understand the format and type of data
+head(HRDataset_v14)
+
+# Get a summary of the dataset to understand basic statistics
+summary(HRDataset_v14)
+
+# Check for missing values in the dataset
+sum(is.na(HRDataset_v14))
+
+# Check the column names in your dataset
+colnames(HRDataset_v14)
+
+### Descriptivies
+unique(HRDataset_v14$Employee_Name)
+unique(HRDataset_v14$EmpID)
+median(HRDataset_v14$Salary)
+num_positions <- n_distinct(HRDataset_v14$Position)
+print(num_positions)
+
+num_departments <- n_distinct(HRDataset_v14$DeptID )
+print(num_departments)
+
+ncol(HRDataset_v14) * nrow(HRDataset_v14)
+
+ glimpse(HRDataset_v14)
+```
+
+# Is there any relationship between who a person works for and their performance score?
+```{r}
+
+# Removing rows with missing ManagerName or PerformanceScore
+data_clean <- HRDataset_v14 %>%
+ filter(!is.na(ManagerName) & !is.na(PerformanceScore))
+
+
+# Check if there are any non-numeric values in the `PerformanceScore` column.
+ unique_values <- unique(data_clean$PerformanceScore)
+ print(unique_values)
+ 
+ 
+ #######################
+ 
+data_clean$PerformanceScore <- factor(data_clean$PerformanceScore, 
+                                     levels = c("Needs Improvement", "PIP", "Fully Meets", "Exceeds"),
+                                     ordered = TRUE)
+
+summary_stats <- data_clean %>%
+     group_by(ManagerName) %>%
+     summarise(
+       count = n(),
+       exceeds_count = sum(PerformanceScore == "Exceeds"),
+       fully_meets_count = sum(PerformanceScore == "Fully Meets"),
+       needs_improvement_count = sum(PerformanceScore == "Needs Improvement"),
+       pip_count = sum(PerformanceScore == "PIP")
+     )
+
+   print(summary_stats)
+   
+
+ggplot(data_clean, aes(x = ManagerName, fill = PerformanceScore)) +
+ geom_bar(position = "dodge") +
+ labs(title = "Performance Distribution by Manager",
+      x = "Manager Name",
+      fill = "Performance Score") +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+## Stats
+```{r}
+
+# Run the Kruskal-Wallis Test
+
+   kruskal_result <- kruskal.test(PerformanceScore ~ ManagerName, data = data_clean)
+   print(kruskal_result)
+
+```
+
+##############################
+##############################
+############################## DIVERSITY
+##############################
+##############################
+
+# What is the overall diversity profile of the organization?
+
+#### Calculate age
+```{r}
+View(HRDataset_v14)
+# Check and convert DOB to Date format
+HRDataset_v14$DOB <- mdy(HRDataset_v14$DOB)
+
+# Recalculate age
+HRDataset_v14 <- HRDataset_v14 %>%
+  mutate(Age = floor(interval(start = DOB, end = Sys.Date()) / years(1)))
+
+# Check for impossible age values
+HRDataset_v14 <- HRDataset_v14 %>%
+  filter(Age >= 0 & Age <= 100)
+
+## Histo
+# Create a histogram of ages
+ggplot(HRDataset_v14, aes(x = Age)) +
+  geom_histogram(binwidth = 5, fill = "blue", color = "black") +
+  labs(title = "Age Distribution", x = "Age", y = "Count")
+
+# Create age groups in decades
+HRDataset_v14 <- HRDataset_v14 %>%
+  mutate(AgeGroup = cut(Age, breaks = seq(20, 70, by = 10), right = FALSE, include.lowest = TRUE, 
+                        labels = c("20-29", "30-39", "40-49", "50-59", "60-69")))
+
+# Plot age groups
+ggplot(HRDataset_v14, aes(x = AgeGroup)) +
+  geom_bar(fill = "purple", color = "black") +
+  labs(title = "Age Group Distribution", x = "Age Group", y = "Count")
+
+# Summarize the age groups into a table
+age_group_table <- HRDataset_v14 %>%
+  dplyr::group_by(AgeGroup) %>%
+  dplyr::summarize(Count = n()) %>%
+  dplyr::arrange(AgeGroup)
+
+# Print the table
+print(age_group_table)
+
+# Calculate the minimum and maximum ages
+age_summary <- HRDataset_v14 %>%
+  dplyr::summarize(
+    MinAge = min(Age, na.rm = TRUE),
+    MaxAge = max(Age, na.rm = TRUE)
+  )
+
+# Print the minimum and maximum ages
+print(age_summary)
+
+
+glimpse(HRDataset_v14)
+
+```
+
+
+### Clean
+```{r}
+
+# Check for Missing Values:
+# Identify whether there are missing values in key columns and decide how to handle them (e.g., imputation, removal).
+
+   # Summary of missing values
+   summary(is.na(HRDataset_v14))
+
+
+# Determine if missing values are significant or systematic, possibly requiring specific handling.
+
+# Remove Duplicate Entries:**
+# Duplicates can skew your analysis, especially when summarizing demographic data.
+
+   # Check for duplicates based on 'EmpID' or all columns
+   duplicates <- HRDataset_v14 %>%
+     group_by(EmpID) %>%
+     filter(n() > 1)
+
+   # Remove duplicates
+   your_data_clean <- HRDataset_v14 %>%
+     distinct(EmpID, .keep_all = TRUE)
+   
+   summary(is.na(your_data_clean))
+   
+
+   # Ensure consistency in categorical data (e.g., consistent spelling and capitalization for race, gender).
+   # Inspect unique values of key categorical columns
+   unique(your_data_clean$RaceDesc)
+   unique(your_data_clean$GenderID)
+
+   # - Ensure columns are in appropriate formats (e.g., factors for categorical variables).
+   your_data_clean$GenderID <- as.factor(your_data_clean$GenderID)
+   your_data_clean$RaceDesc <- as.factor(your_data_clean$RaceDesc)
+
+
+# Handle Outliers or Anomalies
+# While less crucial for demographic analysis, ensure there are no data entry errors in fields like age or dates.
+
+# Final Inspection:
+# Re-check the cleaned dataset to ensure no issues remain.
+
+   summary(your_data_clean)
+   str(your_data_clean)
+   
+   
+   ##### Descriptives
+   n_distinct(your_data_clean$PositionID)
+   colnames(your_data_clean)
+   n_distinct(your_data_clean$DeptID)
+   median(your_data_clean$Salary)
+
+
+```
+
+
+
+```{r}
+
+# Gender distribution
+   gender_distribution <- your_data_clean %>%
+     group_by(GenderID) %>%
+     summarise(count = n()) %>%
+     mutate(percentage = count / sum(count) * 100)
+
+   # Race Distribution
+   race_distribution <- your_data_clean %>%
+     group_by(RaceDesc) %>%
+     summarise(count = n()) %>%
+     mutate(percentage = count / sum(count) * 100)
+
+      # Standardize the case for the HispanicLatino column
+      your_data_clean$HispanicLatino <- toupper(your_data_clean$HispanicLatino)
+      
+      # Recalculate the distribution
+      hispanic_distribution <- your_data_clean %>%
+        group_by(HispanicLatino) %>%
+        summarise(count = n()) %>%
+        mutate(percentage = count / sum(count) * 100)
+      
+      # View the corrected table
+      print(hispanic_distribution)
+
+   # Marital Status
+   marital_distribution <- your_data_clean %>%
+     group_by(MaritalDesc) %>%
+     summarise(count = n()) %>%
+     mutate(percentage = count / sum(count) * 100)
+
+   # Citizenship status
+   citizenship_distribution <- your_data_clean %>%
+     group_by(CitizenDesc) %>%
+     summarise(count = n()) %>%
+     mutate(percentage = count / sum(count) * 100)
+
+   # Print the summaries
+   list(gender_distribution = gender_distribution,
+        race_distribution = race_distribution,
+        hispanic_distribution = hispanic_distribution,
+        marital_distribution = marital_distribution,
+        citizenship_distribution = citizenship_distribution)
+   
+   
+################
+   # Gender Distribution Plot
+   ggplot(gender_distribution, aes(x = GenderID, y = percentage, fill = GenderID)) +
+     geom_bar(stat = "identity") +
+     labs(title = "Gender Distribution", x = "Gender", y = "Percentage") +
+     theme_minimal()
+
+   # Repeat similar plots for RaceDesc, HispanicLatino, MaritalDesc
+   # Ensure to adjust based on the unique nature of these categorical variables.
+   
+   # Race Plot
+ggplot(race_distribution, aes(x = RaceDesc, y = percentage, fill = RaceDesc)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Race Distribution", x = "Race", y = "Percentage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Hispanci Plot
+ggplot(hispanic_distribution, aes(x = HispanicLatino, y = percentage, fill = HispanicLatino)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Hispanic/Latino Distribution", x = "Hispanic/Latino", y = "Percentage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot
+ggplot(marital_distribution, aes(x = MaritalDesc, y = percentage, fill = MaritalDesc)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Marital Status Distribution", x = "Marital Status", y = "Percentage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot
+ggplot(citizenship_distribution, aes(x = CitizenDesc, y = percentage, fill = CitizenDesc)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Citizen Status Distribution", x = "Citizen Status", y = "Percentage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+glimpse(your_data_clean)
+
+```
+
+##############################
+##############################
+############################## RECRUITING SOURCES
+##############################
+##############################
+
+
+# What are our best recruiting sources if we want to ensure a diverse organization?
+```{r}
+
+   # Calculate diversity distribution by RecruitmentSource
+   # diversity_summary <- your_data_clean %>%
+   #  dplyr::group_by(RecruitmentSource) %>%
+   #  dplyr::summarize(
+   #    total_count = n(),
+   #    gender_diversity = n_distinct(GenderID),
+   #    gender_diversity = n_distinct(GenderID),
+   #    race_diversity = n_distinct(RaceDesc),
+   #    marital_diversity = n_distinct(MaritalDesc),
+   #    citizenship_diversity = n_distinct(CitizenDesc),
+   #    hispanic_latino_diversity = n_distinct(HispanicLatino)
+   #  )
+   # 
+   # print(diversity_summary)
+   
+   #################
+
+   # glimpse(your_data_clean)
+   # unique(your_data_clean$RaceDesc)
+
+   race_distribution <- your_data_clean %>%
+     dplyr::group_by(RecruitmentSource, RaceDesc) %>%
+     dplyr::summarise(count = n()) %>%
+     dplyr::mutate(percentage = (count / sum(count)) * 100)
+   
+   print(race_distribution)
+   
+   
+###### 
+   # Use a measure of evenness like Shannon's diversity index to evaluate diversity across `RecruitmentSource`.
+   diversity_index <- your_data_clean %>%
+     group_by(RecruitmentSource) %>%
+     summarise(
+       diversity = diversity(table(RaceDesc), index = "shannon")
+     )
+
+   print(diversity_index)
+   
+   
+### Visualization 1: Race Distribution by Recruitment Source   
+# Stacked bar plot for race distribution
+ggplot(race_distribution, aes(x = RecruitmentSource, y = percentage, fill = RaceDesc)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Race Distribution by Recruitment Source", x = "Recruitment Source", y = "Percentage") +
+  scale_fill_brewer(palette = "Set3") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+### Visualization 2: Shannon Diversity Index
+
+# Scatter plot for Shannon diversity index
+ggplot(diversity_index, aes(x = RecruitmentSource, y = diversity)) +
+  geom_point(size = 4, color = "blue") +
+  geom_hline(yintercept = mean(diversity_index$diversity), linetype = "dashed", color = "red") +
+  labs(title = "Shannon Diversity Index by Recruitment Source", x = "Recruitment Source", y = "Diversity Index") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+### Calculate Overall Race Proportions
+```{r}
+
+  overall_race_distribution <- your_data_clean %>%
+     dplyr::group_by(RaceDesc) %>%
+     dplyr::summarise(total = n()) %>%
+     dplyr::mutate(overall_percentage = (total / sum(total)) * 100)
+   
+   print(overall_race_distribution)
+   
+   #Customize Flextable
+# Assuming overall_race_distribution has columns "RaceDesc", "total", "overall_percentage"
+overall_race_distribution_ft <- flextable(overall_race_distribution) %>%
+  set_header_labels(
+    RaceDesc = "Race",
+    total = "Total",
+    overall_percentage = "Representation %"
+  ) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>%
+  align(align = "center", part = "all") %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body") %>%
+  width(j = c("RaceDesc", "total", "overall_percentage"), width = 1.75)
+
+# Print the flextable
+overall_race_distribution_ft
+   
+###################################################################
+   
+   ### Compare Recruitment Source Proportions
+   # Calculate the deviation of each recruitment source from the overall composition.
+
+   recruitment_race_proportion <- race_distribution %>%
+     left_join(overall_race_distribution, by = "RaceDesc") %>%
+     mutate(deviation_from_overall = percentage - overall_percentage)
+   
+   print(recruitment_race_proportion)
+   
+   
+   
+#################################################   
+   
+   ####
+    ggplot(recruitment_race_proportion, aes(x = RecruitmentSource, y = deviation_from_overall, fill = RaceDesc)) +
+     geom_bar(stat = "identity", position = "dodge") +
+     labs(title = "Deviation from Overall Race Composition by Recruitment Source", x = "Recruitment Source", y = "Deviation Percentage") +
+     scale_fill_brewer(palette = "Set3") +
+     theme_minimal() +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    
+    
+# Calculate Evenness
+
+    # Use statistical measures like the Gini coefficient or a similar index to assess how evenly each source distributes hires across racial categories.
+   evenness_measure <- race_distribution %>%
+     dplyr::group_by(RecruitmentSource) %>%
+     dplyr::summarise(gini_index = ineq(count, type = "Gini"))
+   
+   print(evenness_measure)
+   
+   ### Visualize Evenness
+   ggplot(evenness_measure, aes(x = RecruitmentSource, y = gini_index)) +
+     geom_bar(stat = "identity", fill = "steelblue") +
+     labs(title = "Evenness of Racial Distribution by Recruitment Source", x = "Recruitment Source", y = "Gini Index") +
+     theme_minimal() +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+#### White and Non White
+```{r}
+
+# Separate white and non-white calculations
+   recruitment_white_nonwhite <- your_data_clean %>%
+     dplyr::group_by(RecruitmentSource, RaceDesc) %>%
+     dplyr::summarise(count = n()) %>%
+     dplyr::mutate(total = sum(count)) %>%
+     dplyr::mutate(is_white = ifelse(RaceDesc == "White", "White", "Non-White")) %>%
+     dplyr::group_by(RecruitmentSource, is_white) %>%
+     dplyr::summarise(percentage = sum(count) / unique(total) * 100) %>%
+     spread(is_white, percentage, fill = 0)
+   
+   print(recruitment_white_nonwhite)
+   
+   
+   recruitment_white_nonwhite <- recruitment_white_nonwhite %>%
+   dplyr::mutate(non_white_advantage = `Non-White` - White) %>%
+   dplyr::arrange(desc(non_white_advantage))
+
+   print(recruitment_white_nonwhite)
+   
+   
+#############################
+   
+   # Reshape data for plotting
+plot_data <- recruitment_white_nonwhite %>%
+  gather(key = "Group", value = "Percentage", White, `Non-White`)
+
+# Plot
+ggplot(plot_data, aes(x = RecruitmentSource, y = Percentage, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "White vs Non-White Percentage by Recruitment Source",
+       x = "Recruitment Source", 
+       y = "Percentage") +
+  scale_fill_manual(values = c("White" = "red", "Non-White" = "green")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bar plot with non-white advantage annotation
+ggplot(plot_data, aes(x = RecruitmentSource, y = Percentage, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_line(data = recruitment_white_nonwhite, aes(x = RecruitmentSource, y = non_white_advantage, group = 1), 
+            color = "red", size = 1.5, linetype = "dashed", inherit.aes = FALSE) +
+  labs(title = "White vs Non-White Percentage by Recruitment Source with Non-White Advantage",
+       x = "Recruitment Source", 
+       y = "Percentage") +
+  scale_fill_manual(values = c("White" = "orange", "Non-White" = "blue")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+   
+
+```
+
+##############################
+##############################
+############################## Pay not equitable
+##############################
+##############################
+
+
+# Are there areas of the company where pay is not equitable?
+```{r}
+
+   # Example for GenderID
+   gender_salary <- your_data_clean %>%
+     group_by(GenderID) %>%
+     dplyr::summarise(
+       mean_salary = mean(Salary, na.rm = TRUE),
+       median_salary = median(Salary, na.rm = TRUE),
+       count = n()
+     )
+
+   print(gender_salary)
+   
+     # Assuming gender_salary is already computed
+ggplot(gender_salary, aes(x = as.factor(GenderID), y = median_salary, fill = as.factor(GenderID))) +
+  geom_col() +
+  labs(title = "Median Salary by Gender", x = "Gender", y = "Median Salary") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightcoral", "deepskyblue")) # Adjust colors as needed
+
+
+############################
+
+# Function to create a summary and plot
+create_salary_plot <- function(data, group_var, title) {
+  # Calculate median salary for the specified group
+  salary_summary <- data %>%
+    group_by({{ group_var }}) %>%
+    summarise(
+      median_salary = median(Salary, na.rm = TRUE)
+    )
+  
+  # Plot the median salary
+  ggplot(salary_summary, aes(x = {{ group_var }}, y = median_salary, fill = {{ group_var }})) +
+    geom_col() +
+    labs(title = title, x = as.character(substitute(group_var)), y = "Median Salary") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+    scale_fill_brewer(palette = "Set3") # Choose an appropriate color palette
+}
+
+# RaceDesc
+create_salary_plot(your_data_clean, RaceDesc, "Median Salary by Race")
+
+# MaritalDesc
+create_salary_plot(your_data_clean, MaritalDesc, "Median Salary by Marital Status")
+
+# CitizenDesc
+create_salary_plot(your_data_clean, CitizenDesc, "Median Salary by Citizenship Status")
+
+# State
+create_salary_plot(your_data_clean, State, "Median Salary by State")
+
+# Position
+create_salary_plot(your_data_clean, Position, "Median Salary by Position")
+
+      # Table
+        positions_summary <- your_data_clean %>%
+          group_by(Position, RaceDesc) %>%
+          summarise(
+            median_salary = median(Salary, na.rm = TRUE)
+          )
+
+################################################################# Discrete Variables
+
+# Function to create a summary and plot for discrete group variables
+create_salary_plot <- function(data, group_var, title) {
+  # Calculate median salary for the specified group
+  salary_summary <- data %>%
+    group_by({{ group_var }}) %>%
+    summarise(
+      median_salary = median(Salary, na.rm = TRUE)
+    )
+  
+  # Ensure the group variable is treated as a factor
+  salary_summary <- salary_summary %>%
+    mutate({{ group_var }} := as.factor({{ group_var }}))
+  
+  # Plot the median salary
+  ggplot(salary_summary, aes(x = {{ group_var }}, y = median_salary, fill = {{ group_var }})) +
+    geom_col() +
+    labs(title = title, x = as.character(substitute(group_var)), y = "Median Salary") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+    scale_fill_brewer(palette = "Set3") # Choose an appropriate color palette
+}
+
+# Example usage
+create_salary_plot(your_data_clean, DeptID, "Median Salary by Dept")
+
+# State
+create_salary_plot(your_data_clean, ManagerID, "Median Salary by Manager")
+ 
+```
+
+#### Test Signficance
+```{r}
+# Use ANOVA for Multiple Groups
+# ANOVA for Race
+   race_anova <- aov(Salary ~ RaceDesc, data = your_data_clean)
+   summary(race_anova)
+   
+# Kruskal-Wallis test for RaceDesc
+kruskal_result <- kruskal.test(Salary ~ RaceDesc, data = your_data_clean)
+print(kruskal_result)
+
+#############
+# t-test example for Gender
+   gender_t_test <- t.test(Salary ~ GenderID, data = your_data_clean)
+   print(gender_t_test)
+
+#############
+# Use a Shapiro-Wilk test for normality.
+shapiro.test(your_data_clean$Salary)
+   
+# Welch ANOVA for RaceDesc
+welch_anova <- oneway.test(Salary ~ RaceDesc, data = your_data_clean, var.equal = FALSE)
+print(welch_anova)
+
+# Welch ANOVA for MaritalDesc
+welch_anova <- oneway.test(Salary ~ MaritalDesc, data = your_data_clean, var.equal = FALSE)
+print(welch_anova)
+
+# Welch ANOVA for CitizenDesc
+welch_anova <- oneway.test(Salary ~ CitizenDesc, data = your_data_clean, var.equal = FALSE)
+print(welch_anova)
+
+# Welch ANOVA for CitizenDesc
+welch_anova <- oneway.test(Salary ~ Position, data = your_data_clean, var.equal = FALSE)
+print(welch_anova)
+
+
+
+#############
+# Use Levene's test to check variance homogeneity.
+library(car)
+leveneTest(Salary ~ RaceDesc, data = your_data_clean)
+```
+
+
+#### White vs Non White
+```{r}
+##################################### White vs Non White
+your_data_clean <- your_data_clean %>%
+     mutate(
+       RaceGroup = ifelse(RaceDesc == "White", "White", "Non-White")
+     )
+
+ race_t_test <- t.test(Salary ~ RaceGroup, data = your_data_clean)
+   print(race_t_test)
+   
+   non_white_salaries_Full <- your_data_clean %>%
+     filter(RaceGroup == "Non-White") 
+   
+   non_white_salaries <- your_data_clean %>%
+     filter(RaceGroup == "Non-White") %>%
+     select(Salary)
+   
+   
+   
+    ggplot(non_white_salaries, aes(x = "", y = Salary)) +
+     geom_boxplot() +
+     labs(title = "Salary Distribution for Non-White Employees", y = "Salary") +
+     theme_minimal()
+    
+        # Histogram of Non-White Salaries
+ggplot(non_white_salaries, aes(x = Salary)) +
+  geom_histogram(binwidth = 5000, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of Non-White Salaries", x = "Salary", y = "Frequency") +
+  theme_minimal()
+
+# Filter White Salaries
+white_salaries <- your_data_clean %>%
+  filter(RaceGroup == "White") %>%
+  select(Salary)
+
+# Histogram of White Salaries
+ggplot(white_salaries, aes(x = Salary)) +
+  geom_histogram(binwidth = 5000, fill = "lightcoral", color = "black") +
+  labs(title = "Histogram of White Salaries", x = "Salary", y = "Frequency") +
+  theme_minimal()
+
+
+########################
+
+your_data_clean <- your_data_clean %>%
+     mutate(
+       RaceGroup = ifelse(RaceDesc == "White", "White", "Non-White")
+     )
+```
+
+
+#### White vs Non White: Quartiles
+```{r}
+   
+ ###########  
+   
+  summary_stats <- summary(non_white_salaries$Salary)
+   iqr_value <- IQR(non_white_salaries$Salary)
+   lower_bound <- summary_stats[2] - 1.5 * iqr_value
+   upper_bound <- summary_stats[5] + 1.5 * iqr_value
+
+   summary_stats
+   lower_bound
+   upper_bound
+   
+  outliers <- non_white_salaries$Salary[non_white_salaries$Salary < lower_bound |
+                                         non_white_salaries$Salary > upper_bound]
+   
+   outliers
+   
+    ggplot(non_white_salaries, aes(x = "", y = Salary)) +
+     geom_boxplot() +
+     labs(title = "Salary Distribution for Non-White Employees", y = "Salary") +
+     theme_minimal()
+    
+    # Histogram of Non-White Salaries
+ggplot(non_white_salaries, aes(x = Salary)) +
+  geom_histogram(binwidth = 5000, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of Non-White Salaries", x = "Salary", y = "Frequency") +
+  theme_minimal()
+
+# Filter White Salaries
+white_salaries <- your_data_clean %>%
+  filter(RaceGroup == "White") %>%
+  select(Salary)
+
+# Histogram of White Salaries
+ggplot(white_salaries, aes(x = Salary)) +
+  geom_histogram(binwidth = 5000, fill = "lightcoral", color = "black") +
+  labs(title = "Histogram of White Salaries", x = "Salary", y = "Frequency") +
+  theme_minimal()
+
+#######################
+### White Salary by position
+
+num_white_salaries <- n_distinct(white_salaries)
+print(num_white_salaries)
+# 186
+
+num_non_white_salaries <- n_distinct(non_white_salaries)
+print(num_non_white_salaries)
+# 124
+
+```
+
+### Outliers: IQR
+```{r}
+# Calculate IQR for White Salaries
+   summary_stats_white <- summary(white_salaries$Salary)
+   iqr_value_white <- IQR(white_salaries$Salary)
+   lower_bound_white <- summary_stats_white[2] - 1.5 * iqr_value_white
+   upper_bound_white <- summary_stats_white[5] + 1.5 * iqr_value_white
+
+   # Filter out outliers
+   filtered_white_salaries <- white_salaries %>%
+     filter(Salary >= lower_bound_white & Salary <= upper_bound_white)
+
+     # Histogram of White Salaries without Outliers
+   ggplot(filtered_white_salaries, aes(x = Salary)) +
+     geom_histogram(binwidth = 5000, fill = "lightcoral", color = "black") +
+     labs(title = "Histogram of White Salaries (Outliers Removed)", x = "Salary", y = "Frequency") +
+     theme_minimal()
+   
+   ########################
+   
+      # Calculate IQR for Non-White Salaries
+   summary_stats_non_white <- summary(non_white_salaries$Salary)
+   iqr_value_non_white <- IQR(non_white_salaries$Salary)
+   lower_bound_non_white <- summary_stats_non_white[2] - 1.5 * iqr_value_non_white
+   upper_bound_non_white <- summary_stats_non_white[5] + 1.5 * iqr_value_non_white
+
+   # Filter out outliers
+   filtered_non_white_salaries <- non_white_salaries %>%
+     filter(Salary >= lower_bound_non_white & Salary <= upper_bound_non_white)
+   
+     # Histogram of Non-White Salaries without Outliers
+   ggplot(filtered_non_white_salaries, aes(x = Salary)) +
+     geom_histogram(binwidth = 5000, fill = "lightblue", color = "black") +
+     labs(title = "Histogram of Non-White Salaries (Outliers Removed)", x = "Salary", y = "Frequency") +
+     theme_minimal()
+   
+   
+   ####################
+   
+      # White Salaries Filtering (from previous)
+   filtered_white_salaries <- white_salaries %>%
+     filter(Salary >= lower_bound_white & Salary <= upper_bound_white)
+
+   # Non-White Salaries Filtering (from previous)
+   filtered_non_white_salaries <- non_white_salaries %>%
+     filter(Salary >= lower_bound_non_white & Salary <= upper_bound_non_white)
+   
+      filtered_combined <- bind_rows(
+     filtered_white_salaries %>% mutate(RaceGroup = "White"),
+     filtered_non_white_salaries %>% mutate(RaceGroup = "Non-White")
+   )
+      
+       filtered_t_test <- t.test(Salary ~ RaceGroup, data = filtered_combined)
+   print(filtered_t_test)
+   
+  ################# Viz 
+# Data for plot
+mean_salaries <- data.frame(
+  RaceGroup = c("White", "Non-White"),
+  MeanSalary = c(mean(filtered_white_salaries$Salary, na.rm = TRUE),
+                 mean(filtered_non_white_salaries$Salary, na.rm = TRUE))
+)
+
+# Create the bar plot with labels
+ggplot(mean_salaries, aes(x = RaceGroup, y = MeanSalary, fill = RaceGroup)) +
+  geom_col() +
+  geom_text(aes(label = round(MeanSalary, 2)), vjust = -0.3) +
+  labs(title = "Mean Salaries of White and Non-White Employees (Outliers Removed)",
+       x = "Race Group", y = "Mean Salary") +
+  scale_fill_manual(values = c("lightcoral", "lightblue")) +
+  theme_minimal()
+
+```
+
+### Outliers: Winszoring
+```{r}
+# Install the DescTools package for Winsorizing
+# install.packages("DescTools")
+
+
+# Define a function to Winsorize using specific quantiles
+winsorize_data <- function(data, lower_quantile, upper_quantile) {
+  lower_bound <- quantile(data, probs = lower_quantile, na.rm = TRUE)
+  upper_bound <- quantile(data, probs = upper_quantile, na.rm = TRUE)
+  Winsorize(data, val = c(lower_bound, upper_bound))
+}
+
+# Apply Winsorizing to non-white and white salaries
+winsorized_non_white_salaries <- winsorize_data(non_white_salaries$Salary, 0.01, 0.99)
+winsorized_white_salaries <- winsorize_data(white_salaries$Salary, 0.01, 0.99)
+
+# Apply Winsorizing to non-white and white salaries
+winsorized_non_white_salaries <- data.frame(Salary = winsorize_data(non_white_salaries$Salary, 0.01, 0.99))
+winsorized_white_salaries <- data.frame(Salary = winsorize_data(white_salaries$Salary, 0.01, 0.99))
+
+
+    # Histogram of Non-White Salaries without Outliers
+       ggplot(winsorized_non_white_salaries, aes(x = Salary)) +
+         geom_histogram(binwidth = 5000, fill = "lightblue", color = "black") +
+         labs(title = "Histogram of Non-White Salaries (Outliers Removed)", x = "Salary", y = "Frequency") +
+         theme_minimal()
+       
+    # Histogram of White Salaries without Outliers
+       ggplot(winsorized_white_salaries, aes(x = Salary)) +
+         geom_histogram(binwidth = 5000, fill = "lightcoral", color = "black") +
+         labs(title = "Histogram of White Salaries (Outliers Removed)", x = "Salary", y = "Frequency") +
+         theme_minimal()
+       
+############
+# Combine Winsorized data into one data frame
+winsorized_combined <- rbind(
+  data.frame(Salary = winsorized_non_white_salaries$Salary, RaceGroup = "Non-White"),
+  data.frame(Salary = winsorized_white_salaries$Salary, RaceGroup = "White")
+)
+
+# Run a t-test
+t_test_result <- t.test(Salary ~ RaceGroup, data = winsorized_combined, var.equal = TRUE)
+
+# Print the t-test results
+print(t_test_result)      
+       
+       
+```
+
+
+### Outliers: Box Cox
+```{r}
+# Install the forecast package for Box-Cox transformation
+# install.packages("forecast")
+
+
+# Box-Cox transformation function
+box_cox_transformation <- function(data) {
+  # Lambda is estimated to find the best normalization
+  lambda <- BoxCox.lambda(data)
+  BoxCox(data, lambda)
+}
+
+# Apply Box-Cox to non-white and white salaries
+box_cox_non_white_salaries <- box_cox_transformation(non_white_salaries$Salary)
+box_cox_white_salaries <- box_cox_transformation(white_salaries$Salary)
+
+# Apply Box-Cox to non-white and white salaries
+box_cox_non_white_salaries <- box_cox_transformation(non_white_salaries$Salary)
+box_cox_white_salaries <- box_cox_transformation(white_salaries$Salary)
+
+# Convert to data frames
+box_cox_non_white_salaries_df <- data.frame(Salary = box_cox_non_white_salaries)
+box_cox_white_salaries_df <- data.frame(Salary = box_cox_white_salaries)
+
+    # Density plot for Non-White Salaries
+    ggplot(box_cox_non_white_salaries_df, aes(x = Salary)) +
+      geom_density(fill = "lightblue", alpha = 0.7) +
+      labs(title = "Density of Box-Cox Transformed Non-White Salaries", x = "Transformed Salary", y = "Density") +
+      theme_minimal()
+    
+    # Density plot for White Salaries
+    ggplot(box_cox_white_salaries_df, aes(x = Salary)) +
+      geom_density(fill = "lightcoral", alpha = 0.7) +
+      labs(title = "Density of Box-Cox Transformed White Salaries", x = "Transformed Salary", y = "Density") +
+      theme_minimal()
+    
+#########
+    # Combine Box-Cox transformed data into one data frame
+box_cox_combined <- rbind(
+  data.frame(Salary = box_cox_non_white_salaries, RaceGroup = "Non-White"),
+  data.frame(Salary = box_cox_white_salaries, RaceGroup = "White")
+)
+    
+    # Perform t-test on transformed data
+t_test_result_box_cox <- t.test(Salary ~ RaceGroup, data = box_cox_combined, var.equal = TRUE)
+
+# Print the t-test results
+print(t_test_result_box_cox)
+
+```
+
+
+### Outliers: Arbitrary
+```{r}
+
+# Remove the top 5% of salaries
+top_5_percentile_non_white <- quantile(non_white_salaries$Salary, 0.95, na.rm = TRUE)
+filtered_non_white_salaries_95 <- non_white_salaries %>%
+  filter(Salary <= top_5_percentile_non_white)
+
+top_5_percentile_white <- quantile(white_salaries$Salary, 0.95, na.rm = TRUE)
+filtered_white_salaries_95 <- white_salaries %>%
+  filter(Salary <= top_5_percentile_white)
+
+
+### 2. Cutoff of Salaries Less Than 16,000
+
+# Salaries greater than or equal to 16,000
+filtered_non_white_salaries_16k <- non_white_salaries %>%
+  filter(Salary >= 16000)
+
+filtered_white_salaries_16k <- white_salaries %>%
+  filter(Salary >= 16000)
+
+
+### 3. Cutoff of Salaries Less Than 15,000
+
+# Salaries greater than or equal to 15,000
+filtered_non_white_salaries_15k <- non_white_salaries %>%
+  filter(Salary >= 15000)
+
+filtered_white_salaries_15k <- white_salaries %>%
+  filter(Salary >= 15000)
+
+
+### 4. Cutoff of Salaries Less Than 12,000
+# Salaries greater than or equal to 12,000
+filtered_non_white_salaries_12k <- non_white_salaries %>%
+  filter(Salary >= 12000)
+
+filtered_white_salaries_12k <- white_salaries %>%
+  filter(Salary >= 12000)
+
+##############################################################
+
+# Define a function to perform t-tests on filtered datasets
+run_t_tests <- function(non_white, white) {
+  # Combine datasets and run t-test
+  combined_data <- rbind(
+    data.frame(Salary = non_white$Salary, RaceGroup = "Non-White"),
+    data.frame(Salary = white$Salary, RaceGroup = "White")
+  )
+  
+  t_test_result <- t.test(Salary ~ RaceGroup, data = combined_data, var.equal = TRUE)
+  return(t_test_result)
+}
+
+# Top 5% Elimination
+t_test_top_5 <- run_t_tests(filtered_non_white_salaries_95, filtered_white_salaries_95)
+
+# Cutoff of Salaries Less Than 16,000
+t_test_16k <- run_t_tests(filtered_non_white_salaries_16k, filtered_white_salaries_16k)
+
+# Cutoff of Salaries Less Than 15,000
+t_test_15k <- run_t_tests(filtered_non_white_salaries_15k, filtered_white_salaries_15k)
+
+# Cutoff of Salaries Less Than 12,000
+t_test_12k <- run_t_tests(filtered_non_white_salaries_12k, filtered_white_salaries_12k)
+
+# Print results
+print(t_test_top_5)
+print(t_test_16k)
+print(t_test_15k)
+print(t_test_12k)
+
+
+####################
+
+
+# Summary statistics for the filtered data
+summary_stats_remove5percent <- bind_rows(
+  filtered_non_white_salaries_95 %>%
+    dplyr::summarize(Group = "Non-White", Mean = mean(Salary, na.rm = TRUE), Median = median(Salary, na.rm = TRUE), SD = sd(Salary, na.rm = TRUE)),
+  
+  filtered_white_salaries_95 %>%
+    dplyr::summarize(Group = "White", Mean = mean(Salary, na.rm = TRUE), Median = median(Salary, na.rm = TRUE), SD = sd(Salary, na.rm = TRUE))
+)
+
+print(summary_stats_remove5percent)
+
+###############
+# Define odd and even row indices
+odd_rows <- seq(1, nrow(summary_stats_remove5percent), by = 2)
+even_rows <- seq(2, nrow(summary_stats_remove5percent), by = 2)
+
+summary_stats_remove5percent_ft <- flextable(summary_stats_remove5percent) %>%
+  set_header_labels(
+    Group = "Race Group",
+    Mean = "Mean Salary",
+    Median = "Median Salary",
+    SD = "Salary SD"
+  ) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>%
+  align(align = "center", part = "all") %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body") %>%
+  width(j = c("Group", "Mean", "Median", "SD"), width = 1.75)
+
+# Print the flextable
+print(summary_stats_remove5percent_ft)
+
+##################################################### Viz
+
+
+    combined_data_removeFivePercent <- rbind(
+       data.frame(Salary = non_white_salaries$Salary, RaceGroup = "Non-White"),
+       data.frame(Salary = white_salaries$Salary, RaceGroup = "White")
+     )
+
+     ggplot(combined_data_removeFivePercent, aes(x = RaceGroup, y = Salary, fill = RaceGroup)) +
+       geom_boxplot() +
+       labs(title = "Salary Distribution by Race Group", x = "Race Group", y = "Salary") +
+       theme_minimal()
+   
+```
+
+
+
+### Hispanic
+```{r}
+non_white_non_hispanic_salaries <- non_white_salaries %>%
+     filter(RaceGroup == "Non-White") %>%
+     select(Salary)
+colnames(your_data_clean)
+your_data_clean$RaceDesc
+str(your_data_clean$HispanicLatino)
+your_data_clean$HispanicLatino
+
+# Count the number of "Yes" in the HispanicLatino column
+number_of_yes <- sum(your_data_clean$HispanicLatino == "Yes", na.rm = TRUE)
+
+# Print the result
+print(number_of_yes)
+
+hispanic_salaries <- your_data_clean %>%
+     filter(HispanicLatino == "Yes") %>%
+     select(Salary)
+
+white_salaries <- your_data_clean %>%
+     filter(RaceDesc == "White") %>%
+     select(Salary)
+
+# Ensure Salary column is numeric
+class(hispanic_salaries$Salary) <- as.numeric(hispanic_salaries$Salary)
+white_salaries$Salary <- as.numeric(white_salaries$Salary)
+
+# Perform a two-sample t-test
+t_test_result <- t.test(hispanic_salaries$Salary, white_salaries$Salary, 
+                        alternative = "two.sided", 
+                        var.equal = FALSE)
+
+# Print the results
+print(t_test_result)
+
+############################################################## Non hispanic / Non White
+
+non_white_hispanic_Full <- your_data_clean %>%
+     filter(HispanicLatino == "No") %>%
+     filter(RaceDesc != "White")
+
+non_white_hispanic_salaries <- your_data_clean %>%
+     filter(HispanicLatino == "No") %>%
+     filter(RaceDesc != "White") %>%
+     select(Salary)
+
+dplyr::n_distinct(non_white_hispanic_salaries)
+
+# Perform a two-sample t-test
+t_test_non_white_hispanic <- t.test(non_white_hispanic_salaries$Salary, white_salaries$Salary, 
+                        alternative = "two.sided", 
+                        var.equal = FALSE)
+
+# Print the results
+print(t_test_non_white_hispanic)
+
+```
+
+
+### intersections
+```{r}
+
+### 1. Position, Gender, and Salary:
+position_gender_salary <- your_data_clean %>%
+  group_by(Position, GenderID) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    count = n()
+  )
+
+print(position_gender_salary)
+
+# Visualization
+ggplot(position_gender_salary, aes(x = Position, y = median_salary, fill = as.factor(GenderID))) +
+  geom_col(position = "dodge") +
+  labs(title = "Median Salary by Position and Gender", x = "Position", y = "Median Salary") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+### 2. Department, Gender, and Salary:
+
+department_gender_salary <- your_data_clean %>%
+  group_by(Department, GenderID) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    count = n()
+  )
+
+print(department_gender_salary)
+
+# Visualization
+ggplot(department_gender_salary, aes(x = Department, y = median_salary, fill = as.factor(GenderID))) +
+  geom_col(position = "dodge") +
+  labs(title = "Median Salary by Department and Gender", x = "Department", y = "Median Salary") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+### 3. Race, Gender, and Salary:
+race_gender_salary <- your_data_clean %>%
+  group_by(RaceDesc, GenderID) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    count = n()
+  )
+
+print(race_gender_salary)
+
+# Visualization
+ggplot(race_gender_salary, aes(x = RaceDesc, y = median_salary, fill = as.factor(GenderID))) +
+  geom_col(position = "dodge") +
+  labs(title = "Median Salary by Race and Gender", x = "RaceDesc", y = "Median Salary") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+### 4. Position, Race, and Salary:
+
+position_race_salary <- your_data_clean %>%
+  group_by(Position, RaceDesc) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    count = n()
+  )
+
+print(position_race_salary)
+
+# Visualization
+ggplot(position_race_salary, aes(x = Position, y = median_salary, fill = Race)) +
+  geom_col(position = "dodge") +
+  labs(title = "Median Salary by Position and Race", x = "Position", y = "Median Salary") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Intersection Tests
+```{r}
+
+### 1. Position, Gender, and Salary:
+
+anova_position_gender <- aov(Salary ~ Position * GenderID, data = your_data_clean)
+summary(anova_position_gender)
+
+
+### 2. Department, Gender, and Salary:
+
+anova_department_gender <- aov(Salary ~ Department * GenderID, data = your_data_clean)
+summary(anova_department_gender)
+
+
+### 3. Race, Gender, and Salary:
+
+anova_race_gender <- aov(Salary ~ RaceDesc * GenderID, data = your_data_clean)
+summary(anova_race_gender)
+
+
+### 4. Position, Race, and Salary:
+
+anova_position_race <- aov(Salary ~ Position * RaceDesc, data = your_data_clean)
+summary(anova_position_race)
+
+```
+
+
+### Further Investiagion: Race, Gender, and Salary
+```{r}
+# Assuming your ANOVA model is named `anova_race_gender`
+tukey_hsd <- TukeyHSD(anova_race_gender, which = "RaceDesc:GenderID")
+
+# Print the Tukey HSD results
+print(tukey_hsd)
+
+
+# Calculate descriptive statistics by race and gender
+descriptive_stats_raceGender <- your_data_clean %>%
+  group_by(RaceDesc, GenderID) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    sd_salary = sd(Salary, na.rm = TRUE),
+    iqr_salary = IQR(Salary, na.rm = TRUE),
+    count = n()
+  )
+
+# Print the descriptive statistics
+print(descriptive_stats_raceGender)
+View(descriptive_stats_raceGender)
+
+# Boxplot for salary distribution by race and gender
+ggplot(your_data_clean, aes(x = interaction(RaceDesc, GenderID), y = Salary)) +
+  geom_boxplot() +
+  labs(title = "Salary Distribution by Race and Gender", x = "Race and Gender", y = "Salary") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+### Post Tukey
+```{r}
+# Filter data for the two specific groups
+filtered_data <- your_data_clean %>%
+  filter((RaceDesc == "White" & GenderID == 1) | (RaceDesc == "Black or African American" & GenderID == 1))
+
+# Summary statistics
+summary_stats_male_whiteBLack <- filtered_data %>%
+  group_by(RaceDesc, GenderID) %>%
+  summarise(
+    mean_salary = mean(Salary, na.rm = TRUE),
+    median_salary = median(Salary, na.rm = TRUE),
+    sd_salary = sd(Salary, na.rm = TRUE)
+  )
+
+print(summary_stats_male_whiteBLack)
+
+### AddFLEXTABLE
+   #Customize Flextable
+
+# Define odd and even row indices
+odd_rows <- seq(1, nrow(summary_stats_male_whiteBLack), by = 2)
+even_rows <- seq(2, nrow(summary_stats_male_whiteBLack), by = 2)
+
+summary_stats_male_whiteBLack_ft <- flextable(summary_stats_male_whiteBLack) %>%
+  set_header_labels(
+    RaceDesc = "Race",
+    GenderID = "Gender",
+    mean_salary = "Mean Salary",
+    median_salary = "Median Salary",
+    sd_salary = "Salary SD"
+  ) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>%
+  align(align = "center", part = "all") %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body") %>%
+  width(j = c("RaceDesc", "GenderID", "mean_salary", "median_salary", "sd_salary"), width = 1.75)
+
+# Print the flextable
+summary_stats_male_whiteBLack_ft
+
+# Boxplot
+ggplot(filtered_data, aes(x = RaceDesc, y = Salary, fill = as.factor(GenderID))) +
+  geom_boxplot() +
+  labs(title = "Salary Distribution for White and Black or African American Males", x = "Race", y = "Salary") +
+  theme_minimal()
+
+```
+
+
+#### Models
+```{r}
+### Regression Analysis
+## Assess the effect of other variables on salary within the groups to understand underlying factors.
+# Linear regression model
+# model <- lm(Salary ~ ., data = filtered_data)
+# summary(model)
+
+# Identify variables with only one unique value
+single_level_cols <- sapply(filtered_data, function(x) length(unique(x)) == 1)
+print(names(single_level_cols[single_level_cols]))
+
+# Exclude single-level factors from the model
+excluded_vars <- names(single_level_cols[single_level_cols])
+model <- lm(Salary ~ ., data = filtered_data %>% select(-all_of(excluded_vars)))
+
+# Summary of the model
+summary(model)
+
+#################
+# Preprocess the data
+filtered_data_clean <- filtered_data %>%
+  select(-Employee_Name, -EmpID, -ManagerName) %>%
+  filter(complete.cases(.))  # Ensure no missing data
+
+# Re-run regression with essential variables
+model_refined <- lm(Salary ~ ., data = filtered_data_clean)
+
+# Check summary and diagnostics
+summary(model_refined)
+
+
+# Adjust model with additional variables if available
+adjusted_model <- lm(Salary ~ Education + Experience + JobRole + Department, data = filtered_data)
+summary(adjusted_model)
+
+```
+
+
+
+
+###########################################
+###########################################
+########################################### Prediction
+###########################################
+###########################################
+
+### 1st Go
+# Can we predict who is going to terminate and who isn't? What level of accuracy can we achieve on this?
+```{r}
+
+colnames(your_data_clean)
+
+# library(caret)
+
+   # Convert categorical variables to factors if needed
+   your_data_clean$Termd <- as.factor(your_data_clean$Termd)
+
+   # Split the data
+   set.seed(123)
+   train_index <- createDataPartition(your_data_clean$Termd, p = 0.8, list = FALSE)
+   train_data <- your_data_clean[train_index, ]
+   test_data <- your_data_clean[-train_index, ]
+
+   # Train the model
+   model <- train(Termd ~ Age + Salary + DeptID + PerfScoreID + Absences,
+                  data = train_data,
+                  method = "glm",
+                  family = "binomial")
+
+   # Model summary
+   summary(model)
+   
+   #############
+   
+     # Train the model with Absences only
+   model_absences <- train(Termd ~ Absences, data = train_data, method = "glm", family = "binomial")
+
+   # Model summary
+   summary(model_absences)
+   
+  ###################### predictions
+   
+    # # Make predictions: First Set
+   predictions <- predict(model, newdata = test_data)
+
+   # Confusion Matrix
+   confusion_matrix <- confusionMatrix(predictions, test_data$Termd)
+   print(confusion_matrix)
+   
+   ### Absence Only
+      # Make predictions using the absences-only model
+   predictions_absences <- predict(model_absences, newdata = test_data)
+
+   # Confusion Matrix to evaluate performance
+   confusion_matrix_absences <- confusionMatrix(predictions_absences, test_data$Termd)
+   print(confusion_matrix_absences)
+   
+   # Comparison
+   # Confusion Matrix for the full model
+confusion_matrix_full <- confusionMatrix(predictions, test_data$Termd)
+
+# Confusion Matrix for the absences-only model
+confusion_matrix_absences <- confusionMatrix(predictions_absences, test_data$Termd)
+
+# Compare metrics
+print(confusion_matrix_full)
+print(confusion_matrix_absences)
+
+```
+
+
+### 2nd GO: prep the data
+# Can we predict who is going to terminate and who isn't? What level of accuracy can we achieve on this?
+```{r}
+
+  # Check for duplicates based on 'EmpID' or all columns
+   duplicates <- HRDataset_v14 %>%
+     group_by(EmpID) %>%
+     filter(n() > 1)
+
+   # Remove duplicates
+   your_data_clean <- HRDataset_v14 %>%
+     distinct(EmpID, .keep_all = TRUE)
+   
+   summary(is.na(your_data_clean))
+
+nrow(your_data_clean)
+colnames(your_data_clean)
+
+########################### identify and convert categorical variables
+
+convert_to_factors <- function(df) {
+  # Loop through each column to identify and convert categorical variables
+  for (col in names(df)) {
+    # Check if the column is non-numeric and convert it to factor
+    if (!is.numeric(df[[col]])) {
+      cat("Converting", col, "to a factor.\n")
+      df[[col]] <- as.factor(df[[col]])
+    }
+  }
+  return(df)
+}
+
+# Use the function on your dataset
+data_terminationModeling <- convert_to_factors(your_data_clean)
+
+# Verify the change
+str(data_terminationModeling) # Check the structure to ensure columns are converted
+
+
+########################### Missing Values
+####### Identify
+
+# Count NAs in each column
+na_counts <- colSums(is.na(data_terminationModeling))
+
+# Print columns with NAs
+columns_with_na <- na_counts[na_counts > 0]
+print(columns_with_na)
+
+# DateofTermination         ManagerID 
+#               207                 8 
+
+# Identify columns with any NAs
+columns_with_any_na <- names(data_terminationModeling)[apply(is.na(data_terminationModeling), 2, any)]
+print(columns_with_any_na)
+
+########################### Find and Fill ManagerID
+
+# Step 1: Create a lookup table for ManagerName and ManagerID where ManagerID is not NA
+manager_lookup <- data_terminationModeling %>%
+  filter(!is.na(ManagerID)) %>%
+  select(ManagerName, ManagerID) %>%
+  distinct()
+
+# Check for duplicates and include ManagerID
+manager_duplicates <- manager_lookup %>%
+  group_by(ManagerName) %>%
+  summarise(
+    ManagerIDs = paste(unique(ManagerID), collapse = ", "),
+    Count = n()
+  ) %>%
+  filter(Count > 1)
+
+# Display the result
+if (nrow(manager_duplicates) > 0) {
+  print(manager_duplicates)
+} else {
+  cat("No duplicates found in manager_lookup.\n")
+}
+
+   # Find the most frequent ManagerID for each ManagerName
+    manager_frequent <- manager_lookup %>%
+      group_by(ManagerName) %>%
+      summarise(
+        ManagerID = as.integer(names(sort(table(ManagerID), decreasing = TRUE)[1])),
+        .groups = 'drop'
+      )
+
+   # Map the most frequent ManagerID back to the main dataset
+    data_terminationModeling <- data_terminationModeling %>%
+      left_join(manager_frequent, by = "ManagerName") %>%
+      mutate(ManagerID = coalesce(ManagerID.y, ManagerID.x)) %>%
+      select(-ManagerID.x, -ManagerID.y)
+
+# Display the updated data
+print(data_terminationModeling)
+
+#### Recheck
+# Count NAs in each column
+na_counts <- colSums(is.na(data_terminationModeling))
+
+# Print columns with NAs
+columns_with_na <- na_counts[na_counts > 0]
+print(columns_with_na)    
+   
+##########################################
+
+#### Check for Gaps in Terminated and Terminated Date
+# Filter rows where EmploymentStatus is not "Active" and DateofTermination is NA
+gaps_in_termination <- data_terminationModeling %>%
+  filter(EmploymentStatus != "Active" & is.na(DateofTermination))
+
+# Display the resulting data to inspect
+print(gaps_in_termination)
+
+```
+
+
+### Feature Engineer: Age / DateofTermination
+```{r}
+
+# 1) I'd like to feature engineer columns for: age and tenure.
+# -For tenure, if the employee has been terminated but has not termination date, I want to do the following
+# -a) for those we know the date of their termination, I want to calculate the median time between their "LastPerformanceReview_Date" and "DateofTermination".
+# -b) We'll take that average and put impute it into the columns for employees that were terminated but don't have a DateofTermination
+
+########## Age
+
+# Split DOB into components
+dob_parts <- strsplit(as.character(data_terminationModeling$DOB), "/")
+
+# Convert components and adjust the year
+dob_corrected <- sapply(dob_parts, function(x) {
+  month <- as.numeric(x[1])
+  day <- as.numeric(x[2])
+  year <- as.numeric(x[3])
+  year <- ifelse(year > 50, 1900 + year, 2000 + year)
+  sprintf("%02d/%02d/%04d", month, day, year)
+})
+
+# Convert corrected DOB to date
+data_terminationModeling$DOB <- as.Date(dob_corrected, format = "%m/%d/%Y")
+
+# Recalculate age
+reference_date <- as.Date("2019-02-28")
+data_terminationModeling$Age <- as.integer((reference_date - data_terminationModeling$DOB) / 365.25)
+
+# Check the updated data
+head(data_terminationModeling$DOB)
+head(data_terminationModeling$Age)
+head(data_terminationModeling$LastPerformanceReview_Date)
+
+
+########## Tenure
+
+# Convert relevant date columns to Date format
+data_terminationModeling$DateofHire <- as.Date(data_terminationModeling$DateofHire, format = "%m/%d/%Y")
+data_terminationModeling$DateofTermination <- as.Date(data_terminationModeling$DateofTermination, format = "%m/%d/%Y")
+data_terminationModeling$LastPerformanceReview_Date <- as.Date(data_terminationModeling$LastPerformanceReview_Date, format = "%m/%d/%Y")
+
+# Check the conversion
+head(data_terminationModeling$DateofTermination)
+head(data_terminationModeling$LastPerformanceReview_Date)
+
+##################### Impute Reference Date
+
+# Find the most recent date for each column
+most_recent_review_date <- max(data_terminationModeling$LastPerformanceReview_Date, na.rm = TRUE)
+most_recent_hire_date <- max(data_terminationModeling$DateofHire, na.rm = TRUE)
+
+# Output the most recent dates
+most_recent_review_date
+most_recent_hire_date
+
+# > most_recent_review_date
+# [1] "2019-02-28"
+# > most_recent_hire_date
+# [1] "2018-07-09"
+
+# Reference date for determining the most recent date for active employees
+# reference_date <- as.Date("2023-10-01") # or use Sys.Date() for current date
+reference_date <- as.Date("2019-02-28") 
+
+
+
+#####################
+# Calculate tenure
+data_terminationModeling$Tenure <- ifelse(
+  data_terminationModeling$Termd == 1,
+  # Calculate tenure for terminated employees
+  as.integer((data_terminationModeling$DateofTermination - data_terminationModeling$DateofHire) / 365.25),
+  # Calculate tenure for active employees
+  as.integer((pmax(data_terminationModeling$LastPerformanceReview_Date, na.rm=TRUE, reference_date) - data_terminationModeling$DateofHire) / 365.25)
+)
+
+# Check the updated data
+head(data_terminationModeling$Tenure)
+head(data_terminationModeling)
+
+View(data_terminationModeling)
+
+######################### Tenure in Days
+# Calculate tenure in days
+data_terminationModeling$TenureDays <- ifelse(
+  data_terminationModeling$Termd == 1,
+  # Calculate tenure for terminated employees in days
+  as.integer(data_terminationModeling$DateofTermination - data_terminationModeling$DateofHire),
+  # Calculate tenure for active employees in days
+  as.integer(pmax(data_terminationModeling$LastPerformanceReview_Date, reference_date, na.rm = TRUE) - data_terminationModeling$DateofHire)
+)
+
+# View the updated data frame to see the new TenureDays column
+head(data_terminationModeling$TenureDays)
+
+head(data_terminationModeling)
+# colnames(data_terminationModeling)
+
+
+```
+
+#### Active Employees: Set DateofTermination to reference_date
+```{r}
+
+# Ensure the DateofTermination column is formatted correctly
+data_terminationModeling_activeDates <- data_terminationModeling
+
+data_terminationModeling_activeDates$DateofTermination <- as.Date(data_terminationModeling_activeDates$DateofTermination, format = "%Y-%m-%d")
+
+# Set reference date for active employees
+reference_date <- as.Date("2019-02-28")
+
+# Replace NAs using dplyr::mutate and coalesce
+data_terminationModeling_activeDates <- data_terminationModeling_activeDates %>%
+  mutate(DateofTermination = coalesce(DateofTermination, reference_date))
+
+# Check the updated column
+head(data_terminationModeling_activeDates$DateofTermination)
+
+#### Recheck
+# Count NAs in each column
+na_counts <- colSums(is.na(data_terminationModeling_activeDates))
+
+# Print columns with NAs
+columns_with_na <- na_counts[na_counts > 0]
+print(columns_with_na)  
+colnames(data_terminationModeling_activeDates)
+
+```
+
+### Final Factor Prep
+```{r}
+
+# Convert Termd to factor if necessary
+data_terminationModeling_activeDates$Termd <- as.factor(data_terminationModeling_activeDates$Termd)
+
+# Select relevant features (e.g., excluding ID and names)
+features <- data_terminationModeling_activeDates %>%
+  select(-Employee_Name, -EmpID, -DOB, -ManagerName, -ManagerID, -DateofHire)
+
+# Ensure categorical variables are factors
+features <- features %>%
+  mutate(across(where(is.character), as.factor))
+
+# Scale numerical features
+features <- features %>%
+  mutate(across(where(is.numeric), scale))
+
+# Final check
+str(features)
+
+```
+
+### Selected Features
+```{r}
+
+#############
+selected_features <- data_terminationModeling_activeDates %>%
+  select(-Employee_Name, -EmpID, -DOB, -Position, -State, 
+         -Zip, -ManagerName, -DateofHire, -DateofTermination, -ManagerID, 
+         -LastPerformanceReview_Date, -Department)
+
+# Split the Data
+set.seed(123)  # For reproducibility
+indexes <- sample(2, nrow(selected_features), replace = TRUE, prob = c(0.7, 0.3))
+train_data <- selected_features[indexes == 1, ]
+test_data <- selected_features[indexes == 2, ]
+
+```
+
+### Modeling
+```{r}
+
+model_glmnet <- train(Termd ~ ., data = train_data, method = "glmnet", family = "binomial", trControl = trainControl("cv"))
+
+# Make predictions on the test data
+predictions <- predict(model_glmnet, newdata = test_data)
+
+# Confusion matrix to evaluate the model
+conf_matrix <- confusionMatrix(predictions, test_data$Termd)
+print(conf_matrix)
+
+# Print overall accuracy
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy:", accuracy))
+
+####################
+# Probabilities for ROC curve
+prob_predictions <- predict(model_glmnet, newdata = test_data, type = "prob")
+
+# ROC and AUC
+library(pROC)
+roc_curve <- roc(test_data$Termd, prob_predictions[,2])
+plot(roc_curve)
+auc(roc_curve)
+
+# Variable importance
+importance <- varImp(model_glmnet, scale = FALSE)
+print(importance)
+plot(importance)
+
+# Convert variable importance into a data frame
+importance_df <- as.data.frame(importance$importance)
+importance_df$Variable <- rownames(importance_df)
+
+# Plot using ggplot2
+ggplot(importance_df, aes(x = reorder(Variable, Overall), y = Overall)) +
+  geom_point() +
+  coord_flip() +  # Flip coordinates to make it horizontal
+  labs(x = "Variables", y = "Importance") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))  # Adjust text size
+
+# Select top N variables
+top_n <- 30
+importance_top_n <- importance_df %>%
+  arrange(desc(Overall)) %>%
+  head(top_n)
+
+# Plot top N variables
+ggplot(importance_top_n, aes(x = reorder(Variable, Overall), y = Overall)) +
+  geom_point() +
+  coord_flip() +
+  labs(x = "Variables", y = "Importance") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))
+
+###############################################
+
+# Example of tuning
+tune_grid <- expand.grid(alpha = c(0.1, 0.5, 0.9), lambda = seq(0.01, 0.1, by = 0.01))
+model_tuned <- train(Termd ~ ., data = train_data, method = "glmnet", tuneGrid = tune_grid, trControl = trainControl("cv"))
+
+# Evaluate the tuned model
+predictions_tuned <- predict(model_tuned, newdata = test_data)
+conf_matrix_tuned <- confusionMatrix(predictions_tuned, test_data$Termd)
+print(conf_matrix_tuned)
+
+
+#####################################################
+
+# Convert Termd to numeric for VIF calculation
+   train_data_numeric <- train_data
+   train_data_numeric$Termd <- as.numeric(as.character(train_data_numeric$Termd))
+   
+   # Calculate VIF using a numeric response
+   vif_model <- lm(Termd ~ ., data = train_data_numeric)
+   vif_vals <- vif(vif_model)
+   print(vif_vals)
+   
+   # Check for aliased coefficients
+   alias_info <- alias(lm(Termd ~ ., data = train_data_numeric))
+   print(alias_info)
+   
+##################################################
+
+
+# Train a logistic regression model
+model <- train(Termd ~ ., data = train_data, method = "glm", family = "binomial")
+
+# Alternatively, for decision tree:
+# model <- train(Termd ~ ., data = train_data, method = "rpart")
+
+# Predictions
+predictions <- predict(model, test_data)
+
+# Confusion Matrix and Accuracy
+conf_matrix <- confusionMatrix(predictions, test_data$Termd)
+print(conf_matrix)
+
+# Calculate accuracy
+accuracy <- sum(predictions == test_data$Termd) / nrow(test_data)
+print(paste("Accuracy:", round(accuracy, 2)))
+
+```
+
+
+
+#######################
+#######################
+#######################
+#######################
+
+
+### Modeling: Logistic Regresssion
+```{r}
+
+
+# Assuming `data_terminationModeling` is your prepared dataset
+
+# Splitting the data into train and test
+set.seed(123) # Set seed for reproducibility
+trainIndex <- createDataPartition(data_terminationModeling_activeDates$Termd, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+trainData <- data_terminationModeling_activeDates[trainIndex, ]
+testData  <- data_terminationModeling_activeDates[-trainIndex, ]
+
+# Logistic Regression
+logisticModel <- train(Termd ~ ., data = trainData, method = 'glm', family = 'binomial')
+
+# Predictions
+predictions <- predict(logisticModel, newdata = testData)
+
+# Evaluate model
+confusionMatrix(predictions, testData$Termd)
+
+
+
+#############################################################################
+
+library(car)
+
+# Splitting the data into train and test
+set.seed(123) # Set seed for reproducibility
+trainIndex <- createDataPartition(data_terminationModeling_activeDates$Termd, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+trainData <- data_terminationModeling_activeDates[trainIndex, ]
+testData  <- data_terminationModeling_activeDates[-trainIndex, ]
+
+# Convert Termd to a factor
+trainData$Termd <- as.factor(trainData$Termd)
+testData$Termd <- as.factor(testData$Termd)
+
+# Remove near zero variance predictors
+nzv <- nearZeroVar(trainData)
+trainData <- trainData[, -nzv]
+testData <- testData[, -nzv]
+
+# Check for multicollinearity (only among numeric predictors)
+numeric_predictors <- trainData %>% select(where(is.numeric))
+
+if (ncol(numeric_predictors) > 1) {
+  # Handle aliased coefficients
+  num_data <- cbind(numeric_predictors, Termd = as.numeric(trainData$Termd))
+  model <- lm(as.numeric(Termd) ~ ., data = num_data)
+  alias_check <- alias(model)$Complete
+  
+  if (length(alias_check) > 0) {
+    aliased <- names(alias_check)
+    trainData <- trainData[, !(names(trainData) %in% aliased)]
+    testData <- testData[, !(names(testData) %in% aliased)]
+  }
+  
+  # Calculate VIF
+  vif_values <- vif(lm(Termd ~ ., data = trainData))
+  print(vif_values)
+  
+  # Remove predictors with high VIF values
+  high_vif <- names(vif_values[vif_values > 5])
+  trainData <- trainData[, !names(trainData) %in% high_vif]
+  testData <- testData[, !names(testData) %in% high_vif]
+}
+
+# Logistic Regression
+logisticModel <- train(Termd ~ ., data = trainData, method = 'glm', family = 'binomial')
+
+# Predictions
+predictions <- predict(logisticModel, newdata = testData)
+
+# Evaluate model
+confusionMatrix(predictions, testData$Termd)
+
+
+```
+
+
+
+
+
+
+## Check Distributions
+```{r}
+
+# Function to check distribution of each feature
+check_distribution <- function(df) {
+  # Loop through each column
+  for (col in names(df)) {
+    # If the column is a factor or character, plot a bar chart
+    if (is.factor(df[[col]]) || is.character(df[[col]])) {
+      print(ggplot(df, aes_string(x = col)) + 
+              geom_bar() + 
+              labs(title = paste("Distribution of", col)) +
+              theme_minimal())
+    } 
+    # If the column is numeric, plot a histogram
+    else if (is.numeric(df[[col]])) {
+      print(ggplot(df, aes_string(x = col)) + 
+              geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) + 
+              labs(title = paste("Distribution of", col)) +
+              theme_minimal())
+    }
+  }
+}
+
+# Use the function on your dataset
+check_distribution(data_terminationModeling)
+
+
+
+```
+
+
+```{r}
+n_distinct(data_terminationModeling$EmpID)
+nrow(data_terminationModeling)
+nrow(unique(data_terminationModeling))
+
+
+```
+
+
+##############
+##############
+##############
+##############
+##############
+##############
+
+
+
+
+```{r}
+#########################
+# Create dummy variables using model.matrix
+dummy_matrix <- model.matrix(~ MaritalDesc + GenderID + EmploymentStatus + Department - 1, data = your_data_clean_terminationTesting)
+
+# Convert the matrix back to a data frame
+dummy_df <- as.data.frame(dummy_matrix)
+
+# Combine the dummy variables with the original dataset
+your_data_clean_terminationTesting <- cbind(your_data_clean_terminationTesting, dummy_df)
+
+# Remove original categorical columns if needed
+your_data_clean_terminationTesting <- your_data_clean_terminationTesting[, !(names(your_data_clean_terminationTesting) %in% c("MaritalDesc", "GenderID", "EmploymentStatus", "Department"))]
+
+# Check the transformed data
+head(your_data_clean_terminationTesting)
+
+
+
+########################### Missing Values
+####### Identify
+
+# Count NAs in each column
+na_counts <- colSums(is.na(your_data_clean))
+
+# Print columns with NAs
+columns_with_na <- na_counts[na_counts > 0]
+print(columns_with_na)
+
+# Identify columns with any NAs
+columns_with_any_na <- names(your_data_clean_terminationTesting)[apply(is.na(your_data_clean_terminationTesting), 2, any)]
+print(columns_with_any_na)
+
+####### Decision
+# Option 1: Remove rows with any missing values
+eliminate_naTerms_Testing_ <- na.omit(your_data_clean_terminationTesting)
+nrow(your_data_clean)
+# Option 2: Impute missing values using median
+# for(i in names(your_data_clean)){
+#   if(is.numeric(your_data_clean[[i]])){
+#     your_data_clean[[i]][is.na(your_data_clean[[i]])] <- median(your_data_clean[[i]], na.rm = TRUE)
+#   }
+# }
+# 
+# # Option 3: Use the mice package for more advanced imputation 
+# install.packages("mice")
+# library(mice)
+# 
+# # Impute missing data
+# imputed_data <- mice(your_data_clean, m=5, maxit=50, method='pmm', seed=500)
+# your_data_clean <- complete(imputed_data, 1)
+# 
+# # Verify imputation
+# summary(your_data_clean)
+
+
+```
+
+
+
+
+### 2nd GO: Create Combinations and Train Models
+```{r}
+
+# Convert the target variable to a factor
+your_data_clean$Termd <- as.factor(your_data_clean$Termd)
+
+# Define predictor columns (except the response and identifiers)
+predictors <- colnames(your_data_clean)[-which(colnames(your_data_clean) %in% c("Employee_Name", "EmpID", "Termd"))]
+
+# Generate all combinations
+combinations <- unlist(lapply(1:length(predictors), 
+                              function(i) combn(predictors, i, simplify=FALSE)), recursive=FALSE)
+
+# Initialize result storage
+results <- data.frame(Combination = integer(), Accuracy = numeric())
+
+# Loop through each combination
+for (combo in combinations) {
+  formula <- as.formula(paste("Termd ~", paste(combo, collapse = " + ")))
+  
+  # Train-Test Split
+  set.seed(123)
+  trainIndex <- createDataPartition(your_data_clean$Termd, p = 0.8, list = FALSE)
+  train <- your_data_clean[trainIndex, ]
+  test <- your_data_clean[-trainIndex, ]
+  
+  # Train the model
+  model <- randomForest(formula, data=train, ntree=100)
+  
+  # Predict and calculate accuracy
+  predictions <- predict(model, test)
+  accuracy <- sum(predictions == test$Termd) / nrow(test)
+  
+  # Store results
+  results <- rbind(results, data.frame(Combination = paste(combo, collapse = ","), Accuracy = accuracy))
+}
+
+# Sort and view top combinations
+results <- results[order(-results$Accuracy), ]
+head(results)
+
+
+```
+
