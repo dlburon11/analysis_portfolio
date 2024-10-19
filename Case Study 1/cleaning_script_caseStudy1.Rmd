@@ -1,0 +1,189 @@
+
+
+### Case Study Cleaning Script
+
+### Check/Compare Column Names/Datatypes Between CSV Files
+```{r}
+
+# Load necessary library
+list.of.packages <- c("data.table", "shiny", "ggplot2", "shinydashboard", "shinyWidgets",
+                      "plotly", "DT", "lubridate", "readxl", "stringr", "BBmisc",
+                      "scales", "rintrojs", "shinyjs", "shinythemes", "ggalluvial",
+                      "packcircles", "RColorBrewer", "shinycssloaders", "colorspace", "plotly",
+                      "dplyr", "openxlsx", "tidyr", "shinymanager", "fst")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+if (length(new.packages)) install.packages(new.packages)
+lapply(list.of.packages, require, character.only = TRUE)
+
+
+main_folder <- paste0("bike_share_data")
+
+# Get a list of all CSV files in the main folder & sub-folders
+csv_files <- list.files(main_folder, pattern = "*.csv", recursive = TRUE, full.names = TRUE)
+
+# Function to extract column names and data types using fread
+get_col_info <- function(file) {
+  df <- fread(file, nrows = 100)
+  info <- sapply(df, class)
+  names(info) <- names(df)
+  return(info)
+}
+
+# Naming the list elements after the files for easy reference
+col_info_list <- lapply(csv_files, get_col_info)
+names(col_info_list) <- csv_files
+
+# Function to compare all files against the first one (or any reference)
+compare_col_info <- function(col_info_list) {
+  ref_info <- col_info_list[[1]]  # Using the first file as reference
+  non_matching_files <- character()
+  
+  for (i in 2:length(col_info_list)) {
+    if (!identical(ref_info, col_info_list[[i]])) {
+      non_matching_files <- c(non_matching_files, names(col_info_list)[i])
+    }
+  }
+  
+  return(non_matching_files)
+}
+
+non_matching_files <- compare_col_info(col_info_list)
+
+# Output Non-Matching Files
+if (length(non_matching_files) > 0) {
+  cat("The following files do not match the reference file structure:\n")
+  print(non_matching_files)
+} else {
+  cat("All files match the reference file structure.\n")
+}
+
+
+# Function to print detailed differences with adjustments
+print_detailed_diff <- function(ref_info, comp_info) {
+  ref_names <- names(ref_info)
+  comp_names <- names(comp_info)
+  
+  missing_in_comp <- setdiff(ref_names, comp_names)
+  if (length(missing_in_comp) > 0) {
+    cat("Columns missing in comparison file:", paste(missing_in_comp, collapse=", "), "\n")
+  }
+  
+  extra_in_comp <- setdiff(comp_names, ref_names)
+  if (length(extra_in_comp) > 0) {
+    cat("Extra columns in comparison file:", paste(extra_in_comp, collapse=", "), "\n")
+  }
+  
+  for (col in intersect(ref_names, comp_names)) {
+    # Convert to character to ensure compatibility in comparison
+    ref_type <- as.character(ref_info[col])
+    comp_type <- as.character(comp_info[col])
+
+    # Now compare the character representations of the data types
+    if (ref_type != comp_type) {
+      cat("Mismatch in data type for column '", col, "': Reference - ", ref_type, ", Comparison - ", comp_type, "\n", sep="")
+    }
+  }
+}
+
+# Example usage for the first non-matching file
+print_detailed_diff(col_info_list[[1]], col_info_list[[which(names(col_info_list) == non_matching_files[1])]])
+
+```
+
+### Add NAs / Check NAs
+```{r}
+
+# Function to replace blank cells with NA and save the file
+replace_blank_with_NA <- function(file_path) {
+  # Read the file
+  dt <- fread(file_path, na.strings = c("", "NA")) # Treat empty strings as NA
+  
+  # Write the file back
+  fwrite(dt, file_path, na = "NA")
+}
+
+# Define the file paths (adjust paths as necessary)
+files_to_correct <- c("bike_share_data/202312-divvy-tripdata.csv",
+                      "bike_share_data/202406-divvy-tripdata.csv")
+
+# Apply the function to each file
+lapply(files_to_correct, replace_blank_with_NA)
+
+##############
+############## Double Check File/NAs
+##############
+
+# Replace with the path to one of the modified files
+file_path <- "bike_share_data/202312-divvy-tripdata.csv"
+
+# Load the file
+dt <- fread(file_path)
+
+# Summary of the data frame
+summary(dt)
+
+# For a more detailed look at a specific column, you can use table() to see the count of NA values
+table(is.na(dt$start_station_name))
+table(is.na(dt$start_station_id))
+table(is.na(dt$end_station_name))
+table(is.na(dt$end_station_id))
+
+# View the first few rows of the modified columns
+head(dt[, .(start_station_name, start_station_id, end_station_name, end_station_id)])
+
+```
+
+
+### Standardize if need be
+```{r}
+# Function to standardize column names
+standardize_columns <- function(df) {
+  colnames(df) <- tolower(gsub(" ", "_", colnames(df))) # Convert to lower case and replace spaces with underscores
+  return(df)
+}
+
+# Example of reading and standardizing one file
+df_example <- read_csv(files[1]) %>% standardize_columns()
+
+
+```
+
+
+### Combine Files & Remove NAs (Save Cleaned File)
+```{r}
+
+# Path to your CSV files
+csv_files <- list.files(main_folder, pattern = "*.csv", recursive = TRUE, full.names = TRUE)
+
+files_path <- list.files("bike_share_data", full.names = TRUE, pattern = "\\.csv$")
+
+# Initialize an empty data frame or data table to store the combined data
+combined_cyclist_df <- data.frame()
+
+# Loop through each file, read, and combine
+for (csv_file in csv_files) {
+  # Read the current file
+  temp_cyclist_df <- fread(csv_file)
+  
+  # Convert to a data frame if you want to use dplyr functions (optional)
+  # Note: data.table objects can often be used with dplyr functions directly
+  temp_cyclist_df <- as.data.frame(temp_cyclist_df)
+  
+  # Combine with the main dataset
+  combined_cyclist_df <- bind_rows(combined_cyclist_df, temp_cyclist_df)
+}
+
+# Now, use dplyr to remove rows with NA values in any column
+combined_cyclist_df <- combined_cyclist_df %>% filter(complete.cases(.))
+
+# Save the combined and cleaned dataframe to a CSV file
+# write.csv(combined_cyclist_df, "combined_cyclist_data_cleaned.csv", row.names = FALSE)
+
+### FST File
+# Define the full path including the folder and the desired file name
+file_path <- file.path(main_folder, "combined_cyclist_data_cleaned.fst")
+# Save the dataframe as an fst file in the specified folder
+write_fst(combined_cyclist_df, file_path)
+
+```
+

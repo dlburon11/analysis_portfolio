@@ -1,0 +1,1720 @@
+
+
+```{r}
+wipe_and_restart <- function() {
+  rm(list=ls(envir=.GlobalEnv), envir=.GlobalEnv)
+  if ("tools:rstudio" %in% search()) .rs.restartR()
+}
+
+wipe_and_restart()
+```
+
+
+```{r starter}
+
+dom_2 = "Cyclist"
+
+#####################
+#####################
+##### Source
+source("~/Desktop/Data Science/Google Cert/Case Studies/Case_Study_1/data_load_Cyclist_caseStudy_1.R")
+source("~/Desktop/Data Science/Google Cert/Case Studies/Case_Study_1/case_study_1_Text.R")
+
+
+##### Customized Template
+# my_ppt <- read_pptx(path = "caseStudy_slideArchive.pptx")
+
+##################
+# Report Parameters
+##################
+# dates_selected <- c(min(datasets$Prodo_large$date), max(datasets$Prodo_large$date))
+
+###Last Week
+# dates_selected <- c(max(datasets$Prodo_large$date) - 7, max(datasets$Prodo_large$date))
+
+###Last 30 Days
+# dates_selected <- c(max(datasets$Prodo_large$date) - 30, max(datasets$Prodo_large$date))
+
+###Last 150 Days
+# dates_selected <- c(Sys.Date() - 150, Sys.Date())
+
+###Specific Date Range
+# dates_selected <- c("2024-03-24", "2024-04-20")
+# dates_selected <- c("2024-06-05", "2024-06-07")
+
+##################
+# File Output
+##################
+
+
+output_location <- paste(format(Sys.Date(), '%m.%d.%y'), " - ", dom_2, " - Marketing Case Study.pptx", sep = "")
+
+month_year_title <- format(Sys.Date(), '%B %Y')
+
+# write_here <- paste0(prefix, "/Desktop/Prodoscore/Prodo Lab/Semi_Automated Reports/", output_location)
+
+```
+
+
+### Write: Case Study #1
+```{r Write Powerpoint}
+##### Customized Template
+# my_ppt <- read_pptx(path = "caseStudy_slideArchive.pptx")
+
+# Initialize a new PowerPoint object
+my_ppt <- read_pptx(path = "/Users/danielburon/Desktop/Data Science/Google Cert/Case Studies/caseStudy_slideArchive.pptx")
+
+
+############# Repetitive Definitions
+# General Copy
+slide_wide_descriptionStyle <- fp_text(bold = FALSE, color = "black", font.size = 12, font.family = "Arial")
+bold_descriptionStyle <- fp_text(bold = TRUE, color = "black", font.size = 12, font.family = "Arial")
+
+# Divider
+divider_style <- fp_text(bold = TRUE, color = "#15619c", font.size = 40, font.family = "Calibri")
+divider_title_location <- ph_location(
+  left = 0,
+  top = 3.5,
+  height = .6,
+  width = 13.33,
+  newlabel = "leftTable_title_location"
+)
+
+#########################################################################################################
+######################################## Title Slide
+
+#Title Definitions
+dom_2_style <- fp_text(bold = TRUE, color = "white", font.size = 40)
+dom_2_location <- ph_location(
+  left = 1.5,
+  top = 3.9,
+  height = 2,
+  width = 8,
+  newlabel = "dom_2_text_location"
+)
+Compass_style <- fp_text(bold = TRUE, color = "white", font.size = 22)
+Compass_location <- ph_location(
+  left = 1.5,
+  top = 4.6,
+  height = 2,
+  width = 5,
+  newlabel = "compass_text_location"
+)
+powered_style <- fp_text(bold = TRUE, color = "white", font.size = 13)
+powered_location <- ph_location(
+  left = 4.11,
+  top = 4.75,
+  height = .5,
+  width = 5,
+  newlabel = "powered_text_location"
+)
+date_style <- fp_text(bold = FALSE, color = "white", font.family = "DM Sans", font.size = 18)
+date_location <- ph_location(
+  left = 1.55,
+  top = 5.47,
+  height = 1,
+  width = 3.6,
+  newlabel = "date_text_location"
+)
+
+#Write Title Slide
+my_ppt <- on_slide(my_ppt, index = 1) %>%
+          ph_with(value = fpar(ftext(text = dom_2, prop = dom_2_style)), 
+                          location = dom_2_location) %>%
+          ph_with(value = fpar(ftext(text = title_slide_title_description, 
+                                     prop = Compass_style)), 
+                          location = Compass_location) %>%
+          ph_with(value = fpar(ftext(text = "by Daniel Buron", prop = powered_style)), 
+                          location = powered_location) %>%
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = month_year_title, prop = date_style)),
+                          location = date_location) 
+
+#########################################################################################################
+######################################## Business Task 
+
+# Definitions
+executiveDescription_contentOnly_location <- ph_location(
+  left = .55,
+  top = 1.89,
+  height = 5,
+  width = 12,
+  newlabel = "executiveDescription_contentOnly_location"
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Business Task")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = fpar(
+                          ftext(text = businessTask_Description_contentOnly, 
+                                prop = slide_wide_descriptionStyle)),
+                          location = executiveDescription_contentOnly_location)
+
+#########################################################################################################
+######################################## Descriptive Slide: Demographics + Productivity Table
+
+
+######## Description Definitions
+demographics_table_location <- ph_location(
+  left = 2.09,
+  top = 2.4,
+  height = 4,
+  width = 7,
+  newlabel = "demographics_table_location"
+)
+rides_pie_plotPlot_location <- ph_location(
+  left = 6.12,
+  top = 1.66,
+  height = 3.53,
+  width = 6.39
+)
+demographics_productivity_description_location <- ph_location(
+  left = 2.26,
+  top = 4.7,
+  height = 2.34,
+  width = 9.44
+)
+
+
+#Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "descriptives_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Descriptive Statistics")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = demographics_ft, location = demographics_table_location) %>%
+          ph_with(value = rides_pie_plot, location = rides_pie_plotPlot_location) %>% 
+          ph_with(value = fpar(
+                          ftext(text = demographics_productivity_description, 
+                                prop = slide_wide_descriptionStyle)),
+                          location = demographics_productivity_description_location) 
+
+
+#########################################################################################################
+######################################## Documentation: Cleaning
+
+# Definitions
+analysisSummaryDescription_contentOnly_location <- ph_location(
+  left = .55,
+  top = 1.89,
+  height = 5,
+  width = 12
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Documentation: Cleaning")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = documentationCleaning_Description_contentOnly,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_location)
+
+#########################################################################################################
+######################################## Documentation: Manipulation
+
+# Definitions
+analysisSummaryDescription_contentOnly_location <- ph_location(
+  left = .55,
+  top = 1.89,
+  height = 3.6,
+  width = 12
+)
+casual_member_summary_stats_ft_location <- ph_location(
+  left = 3.73,
+  top = 5.43,
+  height = 4,
+  width = 7
+)
+
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Documentation: Manipulation")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = documentationManipulation_Description_contentOnly,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_location) %>%
+          ph_with(value = casual_member_summary_stats_ft, 
+                  location = casual_member_summary_stats_ft_location)
+
+
+
+#########################################################################################################
+######################################## Analysis: Ride Length
+
+
+# Definitions
+analysis_basic_location_barPlot <- ph_location(
+  left = 5.59,
+  top = 1.75,
+  height = 4,
+  width = 7
+)
+analysis_basic_location_ft <- ph_location(
+  left = 1.28,
+  top = 2.1,
+  height = 5,
+  width = 12
+)
+# Definitions
+analysisSummaryDescription_contentOnly_location <- ph_location(
+  left = 2.57,
+  top = 5.8,
+  height = 1.46,
+  width = 9.07
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Analysis: Ride Interval Length")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = analysisDescription_basic,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_location) %>%
+          ph_with(value = casual_count_barPlot, 
+                  location = analysis_basic_location_barPlot) %>%
+          ph_with(value = reshaped_counts_ft, 
+                  location = analysis_basic_location_ft)
+
+#########################################################################################################
+######################################## Analysis: Weekday
+
+
+# Definitions
+analysisSummaryDescription_dayPlot <- ph_location(
+  left = 1.61,
+  top = 1.94,
+  height = 3.92,
+  width = 10.12
+)
+# Definitions
+analysisSummaryDescription_contentOnly_day <- ph_location(
+  left = 2.13,
+  top = 5.99,
+  height = 1.46,
+  width = 9.07
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Analysis: Weekday")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = analysisDescription_day,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_day) %>%
+          ph_with(value = day_usage_plot, 
+                  location = analysisSummaryDescription_dayPlot)
+
+#########################################################################################################
+######################################## Analysis: Weekend
+
+
+analysis_weekend_casual_location_Plot <- ph_location(
+  left = 5.59,
+  top = 1.75,
+  height = 4,
+  width = 7
+)
+analysis_weekend_casual_location_ft <- ph_location(
+  left = 0.74,
+  top = 2.02,
+  height = 5,
+  width = 12
+)
+
+# Definitions
+analysisSummaryDescription_contentOnly_casualWeekend <- ph_location(
+  left = 2.99,
+  top = 5.86,
+  height = 1.46,
+  width = 7.72
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Analysis: Weekend Casual Riders")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = analysisDescription_casualWeekend,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_casualWeekend) %>%
+          ph_with(value = casualWeekendPlot, 
+                  location = analysis_weekend_casual_location_Plot) %>%
+          ph_with(value = reshaped_weekend_casual_counts_ft, 
+                  location = analysis_weekend_casual_location_ft)
+
+######################################## Analysis: Seasonal
+
+# Definitions
+location_analysis_seasonal_dayPlot <- ph_location(
+  left = 0.23,
+  top = 2.56,
+  height = 2.55,
+  width = 6.51
+)
+location_analysis_seasonal_barMonthPlot <- ph_location(
+  left = 7.06,
+  top = 1.78,
+  height = 4.38,
+  width = 6.12
+)
+# Definitions
+analysisSummaryDescription_contentOnly_day <- ph_location(
+  left = 0.6,
+  top = 5.4,
+  height = 1.46,
+  width = 6.14
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Analysis: Seasonal")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = analysisDescription_seasonal,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysisSummaryDescription_contentOnly_day) %>%
+          ph_with(value = memberCasual_seasonal_linePlot, 
+                  location = location_analysis_seasonal_dayPlot) %>%
+          ph_with(value = seasonal_barMonthPlot, 
+                  location = location_analysis_seasonal_barMonthPlot)
+
+######################################## Analysis: Popular
+
+# Definitions
+location_analysis_popular_casual_ft <- ph_location(
+  left = 0.7,
+  top = 2.21,
+  height = 2.55,
+  width = 6.51
+)
+location_analysis_popular_casual_label <- ph_location(
+  left = 1.85,
+  top = 1.79,
+  height = .4,
+  width = 2.9
+)
+location_analysis_popular_member_ft <- ph_location(
+  left = 7.24,
+  top = 2.39,
+  height = 4.38,
+  width = 6.12
+)
+location_analysis_popular_member_label <- ph_location(
+  left = 8.21,
+  top = 1.99,
+  height = .4,
+  width = 3.27
+)
+# Definitions
+analysis_popular_contentOnly_location <- ph_location(
+  left = 2.13,
+  top = 5.89,
+  height = 1.46,
+  width = 9.07
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Analysis: Popular Routes")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = analysisDescription_popular,
+                                prop = slide_wide_descriptionStyle)),
+                          location = analysis_popular_contentOnly_location) %>%
+          ph_with(value = fpar(
+                          ftext(text = "Top 5 Route Counts: Casual",
+                                prop = bold_descriptionStyle)), 
+                          location = location_analysis_popular_casual_label) %>%
+          ph_with(value = popular_casual_ft, 
+                  location = location_analysis_popular_casual_ft) %>%
+          ph_with(value = fpar(
+                          ftext(text = "Top 5 Route Counts: Member",
+                                prop = bold_descriptionStyle)), 
+                          location = location_analysis_popular_member_label) %>%
+          ph_with(value = popular_member_ft, 
+                  location = location_analysis_popular_member_ft)
+
+#########################################################################################################
+######################################## Conclusion
+### Definitions
+conclusion_description_location <- ph_location(
+  left = .55,
+  top = 1.65,
+  height = 5,
+  width = 12,
+  newlabel = "conclusion_description_location"
+)
+
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>%
+          ph_with(value = fpar(
+                          ftext(text = "Strategic Path Forward")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = conclusion_description, location = conclusion_description_location)
+
+
+
+######################################## Print PPT
+#Print Check
+# print(my_ppt, target = paste0(dom_2, " - TESTING: Marketing Case Study.pptx"))
+
+###### Final Print
+print(my_ppt, target = output_location, over)
+
+```
+
+
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+
+
+### Optional: Slide Format Checks
+```{r Slide Format Checks}
+
+# Check available layouts and properties
+layout_summary(my_ppt)
+
+#Individual Slide Layout Check
+layout_properties(my_ppt, layout = "compass_title_slide")
+layout_properties(my_ppt, layout = "executive_leftContent_rightTable")
+layout_properties(my_ppt, layout = "executive_contentOnly")
+layout_properties(my_ppt, layout = "descriptives_leftContent_rightTable")
+layout_properties(my_ppt, layout = "general_leftContent_rightTable")
+layout_properties(my_ppt, layout = "divider_Sample")
+layout_properties(my_ppt, layout = "divider_white")
+layout_properties(my_ppt, layout = "general_mini_table")
+
+
+#Identify IDs in a visual
+#Choose Layout
+# layout_template <- "general_leftContent_rightTable"
+# layout_template <- "executive_contentOnly"
+# layout_template <- "divider_Sample"
+# layout_template <- "divider_white"
+layout_template <- "general_mini_table"
+
+
+layout_df <- layout_properties(my_ppt, layout = layout_template) %>%
+  data.frame() %>%
+  mutate(id = row_number()) %>% # Create an ID based on row number if not already present
+  select(id, offx, offy)
+
+# View(layout_df)
+
+ggplot(layout_df, aes(x = offx, y = -offy, label = id)) + 
+  geom_point() + # Plot points
+  geom_text(vjust = "inward", hjust = "inward", check_overlap = TRUE) + # Add element IDs as labels
+  labs(x = "Horizontal Offset (offx)", y = "Vertical Offset (offy)", title = paste0("PowerPoint Slide: ", layout_template)) +
+  theme_minimal() + # Use a minimal theme
+  coord_equal() # Use equal scales for both axes
+
+
+```
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+
+
+
+### Write Powerpoint
+```{r Write Powerpoint}
+
+##### Customized Template
+my_ppt <- read_pptx(path = "compassReports_MasterArchive.pptx")
+
+
+############# Repetitive Definitions
+# General Copy
+slide_wide_descriptionStyle <- fp_text(bold = FALSE, color = "black", font.size = 12, font.family = "Arial")
+bold_descriptionStyle <- fp_text(bold = TRUE, color = "black", font.size = 12, font.family = "Arial")
+# Divider
+divider_style <- fp_text(bold = TRUE, color = "#15619c", font.size = 40, font.family = "Calibri")
+divider_title_location <- ph_location(
+  left = 0,
+  top = 3.5,
+  height = .6,
+  width = 13.33,
+  newlabel = "leftTable_title_location"
+)
+
+###################################################################################################################
+######################################## Title Slide
+
+#Title Definitions
+dom_2_style <- fp_text(bold = TRUE, color = "white", font.size = 40)
+dom_2_location <- ph_location(
+  left = 1.5,
+  top = 3.9,
+  height = 2,
+  width = 8,
+  newlabel = "dom_2_text_location"
+)
+Compass_style <- fp_text(bold = TRUE, color = "white", font.size = 22)
+Compass_location <- ph_location(
+  left = 1.5,
+  top = 4.6,
+  height = 2,
+  width = 5,
+  newlabel = "compass_text_location"
+)
+powered_style <- fp_text(bold = TRUE, color = "white", font.size = 13)
+powered_location <- ph_location(
+  left = 5.42,
+  top = 4.73,
+  height = .5,
+  width = 5,
+  newlabel = "powered_text_location"
+)
+date_style <- fp_text(bold = FALSE, color = "white", font.family = "DM Sans", font.size = 18)
+date_location <- ph_location(
+  left = 1.55,
+  top = 5.47,
+  height = 1,
+  width = 3.6,
+  newlabel = "date_text_location"
+)
+
+#Write Title Slide
+my_ppt <- on_slide(my_ppt, index = 1) %>%
+          ph_with(value = fpar(ftext(text = dom_2, prop = dom_2_style)), 
+                          location = dom_2_location) %>%
+          ph_with(value = fpar(ftext(text = "Productivity Group Report", prop = Compass_style)), 
+                          location = Compass_location) %>%
+          ph_with(value = fpar(ftext(text = "powered by ProdoLabs", prop = powered_style)), 
+                          location = powered_location) %>%
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = month_year_title, prop = date_style)),
+                          location = date_location) 
+ 
+#Print Check
+# print(my_ppt, target = "prodoLabs_ppTest.pptx")
+
+
+###################################################################################################################
+######################################## Executive Summary Slide: Writing Only
+# Definitions
+executiveDescription_contentOnly_location <- ph_location(
+  left = .55,
+  top = 1.89,
+  height = 5,
+  width = 12,
+  newlabel = "executiveDescription_contentOnly_location"
+)
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_contentOnly",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Executive Summary")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = executiveDescription_contentOnly,
+                          location = executiveDescription_contentOnly_location)
+###################################################################################################################
+######################################## Divider Slide: Sample Description
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "DESCRIBING THE SAMPLE", prop = divider_style)),
+                          location = divider_title_location)
+
+###################################################################################################################
+######################################## Descriptives Slide: Demographics + Productivity Table
+########### Create the demographics table
+demographics_table <- data.frame(
+  Metric = c("Start Date", "End Date", "Number of Roles", "Number of Employees"),
+  Value = c("March 4, 2024", "May 3, 2024", "5", "91")
+)
+
+#Customize
+demographics_ft <- flextable(demographics_table) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") #center cell objects
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(demographics_table))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+demographics_ft <- demographics_ft %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+demographics_ft <- demographics_ft %>%
+  width(j = c("Metric", "Value"), width = 1.75) 
+
+########### Create the Productivity Table
+productivity_table <- data.frame(
+  ProductivityGroup = c("Low Productivity", "Average Productivity", "High Productivity"),
+  Prodoscore = c("<= 40", "> 40 and < 75", ">= 75"),
+  AverageProdoscore = c(37.5, 51.2, 78.9),
+  NumberOfEmployees = c(40, 30, 20)
+)
+# Calculate the percentage of the total for each group
+total_employees <- sum(productivity_table$NumberOfEmployees)
+# productivity_table$prodGroup_percentage <- (productivity_table$NumberOfEmployees / total_employees) * 100
+prodGroup_percentage <- round((productivity_table$NumberOfEmployees / total_employees) * 100, 1)
+
+
+# Productivity pie plot
+empDistribution_piePlot <- ggplot(productivity_table, aes(x = "", y = NumberOfEmployees, fill = ProductivityGroup)) +
+  geom_bar(width = 1, stat = "identity", color = "white") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(fill = "Productivity Group") +
+  # geom_text(aes(label = paste(NumberOfEmployees, "Employees")), position = position_stack(vjust = 0.5))
+  geom_text(aes(label = paste0(prodGroup_percentage, "%"," (", NumberOfEmployees,")")), position = position_stack(vjust = 0.5))
+
+# Change specific column names
+colnames(productivity_table)[colnames(productivity_table) == "ProductivityGroup"] <- "Productivity Group"
+colnames(productivity_table)[colnames(productivity_table) == "AverageProdoscore"] <- "Average Prodoscore"
+colnames(productivity_table)[colnames(productivity_table) == "NumberOfEmployees"] <- "Number of Employees"
+
+#Customize
+productivity_ft <- flextable(productivity_table) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") #center cell objects
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(productivity_table))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+productivity_ft <- productivity_ft %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+productivity_ft <- productivity_ft %>%
+  width(j = "Productivity Group", width = 1.75) %>%  
+  width(j = c("Prodoscore", "Average Prodoscore", "Number of Employees"), width = 1.15)  
+
+
+######## Description Definitions
+demographics_table_location <- ph_location(
+  left = 1.67,
+  top = 2.4,
+  height = 4,
+  width = 7,
+  newlabel = "demographics_table_location"
+)
+empDistribution_piePlot_location <- ph_location(
+  left = 6.5,
+  top = 1.37,
+  height = 3.53,
+  width = 6.39,
+  newlabel = "empDistribution_piePlot_location"
+)
+demographics_productivity_description_location <- ph_location(
+  left = .44,
+  top = 4.47,
+  height = 2.34,
+  width = 6.39,
+  newlabel = "demographics_productivity_description_location"
+)
+productivity_table_location <- ph_location(
+  left = 7.09,
+  top = 4.9,
+  height = 2,
+  width = 5.2,
+  newlabel = "productivity_table_location"
+)
+
+### Description Definitions
+## Demo Table
+startDate <- demographics_table[demographics_table$Metric == "Start Date",]$Value
+endDate <- demographics_table[demographics_table$Metric == "End Date",]$Value
+num_employees <- demographics_table[demographics_table$Metric == "Number of Employees",]$Value
+num_roles <- demographics_table[demographics_table$Metric == "Number of Roles",]$Value
+
+## Prod Table
+# Format Fix
+setDT(productivity_table)
+setnames(productivity_table, old = "Number of Employees", new = "NumberOfEmployees")
+# productivity_table <- productivity_table %>%
+#   rename(NumberOfEmployees = `Number of Employees`)
+names(productivity_table) = gsub(" ", "", names(productivity_table))
+# Average Prodoscore
+low_prod_average <- productivity_table[productivity_table$ProductivityGroup == "Low Productivity", ]$AverageProdoscore
+avg_prod_average <- productivity_table[productivity_table$ProductivityGroup == "Average Productivity", ]$AverageProdoscore
+high_prod_average <- productivity_table[productivity_table$ProductivityGroup == "High Productivity", ]$AverageProdoscore
+# Employee Number
+num_lowProd_employees <- productivity_table[productivity_table$ProductivityGroup == "Low Productivity", ]$NumberOfEmployees
+num_avgProd_employees <- productivity_table[productivity_table$ProductivityGroup == "Average Productivity", ]$NumberOfEmployees
+num_highProd_employees <- productivity_table[productivity_table$ProductivityGroup == "High Productivity", ]$NumberOfEmployees
+
+### Change wording slightly for 1 role vs 2+ job roles
+if(num_roles < 2){
+  demographics_productivity_description <- paste0("The Prodoscore Data Science Department conducted an analysis of ", dom_2, "'s employees over a time period stretching from ", startDate, ", to ", endDate, ". The assessment observed a sample of ", num_employees, " employees all functioning within ", num_roles, " job role.\n\n",
+"• Low Productivity: an average ", low_prod_average, " Prodoscore™ was recorded across ", num_lowProd_employees," employees.\n",
+"• Average Productivity: an average ", avg_prod_average, " Prodoscore™ was recorded across ", num_avgProd_employees," employees.\n",
+"• High Productivity: an average ", high_prod_average, " Prodoscore™ was recorded across ", num_highProd_employees," employees.\n")
+} else {
+  demographics_productivity_description <- paste0("The Prodoscore Data Science Department conducted an analysis of ", dom_2, "'s employees over a time period stretching from ", startDate, ", to ", endDate, ". The assessment observed a sample of ", num_employees, " employees all functioning within ", num_roles, " different job roles.\n\n",
+"• Low Productivity: an average ", low_prod_average, " Prodoscore™ was recorded across ", num_lowProd_employees," employees.\n",
+"• Average Productivity: an average ", avg_prod_average, " Prodoscore™ was recorded across ", num_avgProd_employees," employees.\n",
+"• High Productivity: an average ", high_prod_average, " Prodoscore™ was recorded across ", num_highProd_employees," employees.\n")
+}
+
+
+#Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "descriptives_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Descriptive Statistics")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = demographics_ft, location = demographics_table_location) %>%
+          ph_with(value = empDistribution_piePlot, location = empDistribution_piePlot_location) %>% 
+          ph_with(value = fpar(
+                          ftext(text = demographics_productivity_description, 
+                                prop = slide_wide_descriptionStyle)),
+                          location = demographics_productivity_description_location) %>%
+          ph_with(value = productivity_ft, location = productivity_table_location)
+
+###################################################################################################################
+######################################## Divider Slide: Productivity Trends
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "PRODUCTIVITY TRENDS", prop = divider_style)),
+                          location = divider_title_location)
+
+###################################################################################################################
+######################################## Productivity Scores by Group: "Left Side Text / Right Side Image/Table" Slide
+### Plot Code
+# Basic scatter plot using ggplot2
+enterPlotObject <- ggplot(data = mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  theme_minimal() + 
+  ggtitle("Scatter Plot of MPG vs. Car Weight") +
+  xlab("Weight (1000 lbs)") +
+  ylab("Miles per Gallon")
+
+enterPlotObject_location <- ph_location(
+  left = 6.5,
+  top = 1.75,
+  height = 5,
+  width = 6,
+  newlabel = "enterPlotObject_location"
+)
+
+#Plot Definitions
+productivityTrends_description_location <- ph_location(
+  left = .75,
+  top = 1.5,
+  height = 5,
+  width = 5,
+  newlabel = "productivityTrends_description_location"
+)
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Productivity Scores by Group")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                          ftext(text = productivityTrends_description, prop = slide_wide_descriptionStyle)),
+                          location = productivityTrends_description_location) %>%
+          ph_with(value = enterPlotObject,
+                  location = enterPlotObject_location,
+                  res = 300)
+
+###################################################################################################################
+######################################## Score Density Plot: "2 Big Plots + Underlying Descriptive Text"
+### Plots
+density_plot1 <- ggplot(iris, aes(x = Sepal.Length, fill = Species)) + geom_density(alpha = 0.6) +
+  scale_fill_discrete()
+
+density_plot2 <- ggplot(iris, aes(x = Petal.Width, fill = Species)) + geom_density(alpha = 0.6) +
+  scale_fill_discrete()
+
+### Definitions
+density_plot1_location <- ph_location(
+  left = .52,
+  top = 1.48,
+  height = 4.15,
+  width = 5.79,
+  newlabel = "density_plot1_location"
+) #Plot1
+density_plot2_location <- ph_location(
+  left = 7.02,
+  top = 1.48,
+  height = 4.15,
+  width = 5.79,
+  newlabel = "density_plot2_location"
+) #Plot2
+density_description_location <- ph_location(
+  left = .67,
+  top = 5.63,
+  height = 1.3,
+  width = 12,
+  newlabel = "density_description_location"
+) #description
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Prodoscore™ Density")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = density_plot1, location = density_plot1_location) %>% 
+          ph_with(value = density_plot2, location = density_plot2_location) %>% 
+          ph_with(value = density_description, location = density_description_location)
+
+###################################################################################################################
+######################################## Divider Slide: Activity Insights
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "ACTIVITY INSIGHTS", prop = divider_style)),
+                          location = divider_title_location)
+
+###################################################################################################################
+######################################## Activity Insights Table: "Left Side Text / Right Side Table" Slide
+# df
+module_df <- data.frame(
+  Module = c("Microsoft Outlook", "Office365 Calendar", "OneDrive Activity", 
+             "Salesforce: Accounts", "Salesforce: Activities", "Salesforce: Calls",
+             "Salesforce: Chatter", "Salesforce: Contacts", "Salesforce: New Leads",
+             "Salesforce: New Opportunities", "Teams Calls", "Teams Chat"),
+ low_productivity = c("516", "239h 20min", "71", "2", "97", "0h 00min", "1", "4", "0", "6", "35h 1min", "1274"),
+ avg_productivity = c("519", "61h 21min", "634", "0", "388", "2h 10min", "8", "0", "8", "35.5", "58h 46min", "1653"),
+ high_productivity = c("1190", "119h 57min", "582", "0", "1828", "5h 22min", "68", "0", "70", "93", "95h 32min", "2005")
+)
+
+# Change specific column names
+colnames(module_df)[colnames(module_df) == "low_productivity"] <- "Low Productivity"
+colnames(module_df)[colnames(module_df) == "avg_productivity"] <- "Average Productivity"
+colnames(module_df)[colnames(module_df) == "high_productivity"] <- "High Productivity"
+
+#Customize
+ft <- flextable(module_df) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") #center cell objects
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(module_df))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+ft <- ft %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+ft <- ft %>%
+  width(j = "Module", width = 1.75) %>%  # Adjusting width of the "Module" column
+  width(j = c("Low Productivity", "Average Productivity", "High Productivity"), width = 1.15) 
+
+table1_location <- ph_location(
+  left = 6.5,
+  top = 1.75,
+  height = 4,
+  width = 7,
+  newlabel = "table1_location"
+)
+
+#Plot Definitions
+plot1_description_location <- ph_location(
+  left = .75,
+  top = 1.5,
+  height = 5,
+  width = 5,
+  newlabel = "plot1_description_location"
+)
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Average Module Usage: Total")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = plot1_description, location = plot1_description_location) %>%
+          ph_with(value = ft, location = table1_location)
+
+
+###################################################################################################################
+######################################## Activity Insights Table: MINI TABLE (3 Columns)
+### Mini Table Data
+# Table 1
+# Creating a new data frame
+mini_table_df <- data.frame(
+  Low = c(40),
+  Average = c(30),
+  High = c(20)
+)
+
+#Customize
+mini_ft <- flextable(mini_table_df) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") #center cell objects
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(mini_table_df))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+mini_ft <- mini_ft %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+mini_ft <- mini_ft %>%
+  width(j = c("Low", "Average", "High"), width = 1.1) 
+
+mini_ft_location <- ph_location(
+  left = 10.03,
+  top = .37,
+  height = 1,
+  width = 4,
+  newlabel = "table1_location"
+)
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_mini_table",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Average Module Usage: Total")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = plot1_description, location = plot1_description_location) %>%
+          ph_with(value = ft, location = table1_location) %>%
+          ph_with(value = mini_ft, location = mini_ft_location)
+
+###################################################################################################################
+######################################## Activity Insights Table: MINI TABLE (4 Columns)
+### Mini Table Data
+# Table 1
+# Creating a new data frame
+mini_table_df_4Columns <- data.frame(
+  Metric = "# of Employees",
+  Low = 40,
+  Average = 30,
+  High = 20
+)
+
+#Customize
+mini_ft_4Columns <- flextable(mini_table_df_4Columns) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") #center cell objects
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(mini_table_df_4Columns))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+mini_ft_4Columns <- mini_ft_4Columns %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Cell Widths
+mini_ft_4Columns <- mini_ft_4Columns %>%
+  width(j = "Metric", width = 1.2) %>% 
+  width(j = c("Low", "Average", "High"), width = 1.1) 
+
+mini_ft_4Col_location <- ph_location(
+  left = 8.83,
+  top = .37,
+  height = 1,
+  width = 4,
+  newlabel = "mini_ft_4Col_location"
+)
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_mini_table",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Average Module Usage: Total")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = plot1_description, location = plot1_description_location) %>%
+          ph_with(value = ft, location = table1_location) %>%
+          ph_with(value = mini_ft_4Columns, location = mini_ft_4Col_location)
+
+###################################################################################################################
+######################################## Activity Insights Slide: "2 Line Plots + 2 short tables"
+### Highlighted Modules
+module_highlight_1 <- "Microsoft Outlook"
+module_highlight_2 <- "Teams Chat"
+
+### Plots
+### Plot Code
+# Basic scatter plot using ggplot2
+module_highlight_plot1 <- ggplot(data = mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  theme_minimal() + 
+  ggtitle("Scatter Plot of MPG vs. Car Weight") +
+  xlab("Weight (1000 lbs)") +
+  ylab("Miles per Gallon")
+
+module_highlight_plot2 <- ggplot(data = mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  theme_minimal() + 
+  ggtitle("Scatter Plot of MPG vs. Car Weight") +
+  xlab("Weight (1000 lbs)") +
+  ylab("Miles per Gallon")
+
+
+### Data / Tables
+# Table 1
+# Creating a new data frame
+module_highlightTable_1 <- data.frame(
+  Metric = c("# Of Employees", "Module"),
+  Low = c(40, 385),
+  Average = c(30, 745),
+  High = c(20, 1000)
+)
+
+#Customize: Flextable
+ft_highlightTable_1 <- flextable(module_highlightTable_1) %>%
+  add_header_row(values = module_highlight_1, colwidths = ncol(module_highlightTable_1)) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "black") %>%
+  align(align = "center", part = "all") # Center cell objects
+
+# Apply the blue background color specifically to the custom header row
+ft_highlightTable_1 <- bg(ft_highlightTable_1, i = 1, bg = "#4472c4", part = "header")
+ft_highlightTable_1 <- color(ft_highlightTable_1, i = 1, color = "white", part = "header")
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(module_highlightTable_1))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+ft_highlightTable_1 <- ft_highlightTable_1 %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+ft_highlightTable_1 <- ft_highlightTable_1 %>%
+  width(j = "Metric", width = 1.75) %>%  # Adjusting width of the "Module" column
+  width(j = c("Low", "Average", "High"), width = 1.15)
+
+# Table 2
+module_highlightTable_2 <- data.frame(
+  Metric = c("# Of Employees", "Module"),
+  Low = c(40, 30),
+  Average = c(30, 50),
+  High = c(20, 70)
+)
+
+#Customize: Flextable
+ft_highlightTable_2 <- flextable(module_highlightTable_2) %>%
+  add_header_row(values = module_highlight_2, colwidths = ncol(module_highlightTable_2)) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "black") %>%
+  align(align = "center", part = "all") # Center cell objects
+
+# Apply the blue background color specifically to the custom header row
+ft_highlightTable_2 <- bg(ft_highlightTable_2, i = 1, bg = "#4472c4", part = "header")
+ft_highlightTable_2 <- color(ft_highlightTable_2, i = 1, color = "white", part = "header")
+
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(module_highlightTable_2))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+ft_highlightTable_2 <- ft_highlightTable_2 %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+ft_highlightTable_2 <- ft_highlightTable_2 %>%
+  width(j = "Metric", width = 1.75) %>%  # Adjusting width of the "Module" column
+  width(j = c("Low", "Average", "High"), width = 1.15)
+
+### Definitions
+module_highlight_plot1_location <- ph_location(
+  left = 1.03,
+  top = 1.48,
+  height = 3.11,
+  width = 4.79,
+  newlabel = "module_highlight_plot1_location"
+) #Plot1
+module_highlight_plot2_location <- ph_location(
+  left = 7.2,
+  top = 1.48,
+  height = 3.11,
+  width = 4.79,
+  newlabel = "module_highlight_plot2_location"
+) #Plot2
+module_highlightTable_1_location <- ph_location(
+  left = .83,
+  top = 4.66,
+  height = 2,
+  width = 6,
+  newlabel = "module_highlightTable_1_location"
+) #Table1
+module_highlightTable_2_location <- ph_location(
+  left = 7,
+  top = 4.66,
+  height = 2,
+  width = 6,
+  newlabel = "module_highlightTable_2_location"
+) #Table2
+
+module_highlight_description_location <- ph_location(
+  left = .66,
+  top = 5.82,
+  height = 1.3,
+  width = 12,
+  newlabel = "module_highlight_description_location"
+) #description
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Module Usage by Group")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = module_highlight_plot1, location = module_highlight_plot1_location) %>% 
+          ph_with(value = module_highlight_plot2, location = module_highlight_plot2_location) %>% 
+          ph_with(value = ft_highlightTable_1, location = module_highlightTable_1_location) %>% 
+          ph_with(value = ft_highlightTable_2, location = module_highlightTable_2_location) %>% 
+          ph_with(value = module_highlight_description, location = module_highlight_description_location)
+
+###################################################################################################################
+######################################## Meetings Slide: "Big X-Axis Plot"
+### Wide Plot
+# Convert row names into a column
+mtcars$car_model <- rownames(mtcars)
+
+# Create the plot
+wide_bar_plot <- ggplot(mtcars, aes(x = reorder(car_model, mpg), y = mpg, fill = factor(cyl))) + 
+  geom_bar(stat = "identity") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), # Rotate x labels for better readability
+        plot.margin = margin(10, 10, 10, 10), # Adjust plot margins
+        legend.position.inside = c(0.05, 0.95), # Place legend inside the plot in the upper left
+        legend.justification = c(0, 1)) + # Anchor the legend at its top-left corner
+        # legend.position = "top") + 
+  labs(x = "Car Model", y = "Miles per Gallon (mpg)", title = "MPG for Various Car Models", fill = "Cylinders")
+
+### Definitions
+meetings_plot_location <- ph_location(
+  left = 2.53,
+  top = 1.47,
+  height = 4.56,
+  width = 8.26,
+  newlabel = "module_highlight_plot1_location"
+) #Plot1
+meetings_description_location <- ph_location(
+  left = .66,
+  top = 5.78,
+  height = 1.3,
+  width = 12,
+  newlabel = "module_highlight_description_location"
+) #description
+
+#Write Plot Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Meetings Analysis")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = wide_bar_plot, location = meetings_plot_location) %>% 
+          ph_with(value = meetings_description, location = meetings_description_location)
+
+
+###################################################################################################################
+######################################## Divider Slide: Workday Analysis
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "WORKING HOURS", prop = divider_style)),
+                          location = divider_title_location) 
+
+###################################################################################################################
+######################################## Working Hours
+### Data
+workingHours_df <- data.frame(
+  Metric = c("Start of Day", "End of Day", "Available Working Hours"),
+  Low = c("8:08 AM", "6:07 PM", "9 hrs 59 mins"),
+  Average = c("8:22 AM", "6:55 PM", "10 hrs 33 mins"),
+  High = c("8:06 AM", "7:04 PM", "10 hrs 57 mins")
+)
+
+#Customize
+workingHours_ft <- flextable(workingHours_df) %>%
+  theme_box() %>%
+  bold(part = "header") %>%
+  color(part = "header", color = "white") %>%
+  bg(part = "header", bg = "#4472c4") %>% 
+  align(align = "center", part = "all") %>%
+  border_remove() # Removes all borders
+
+# Add a bold bottom border to the header
+workingHours_ft <- workingHours_ft %>%
+  hline_top(part = "all", border = fp_border(color = "black", width = 2))
+
+# Add a bold bottom border to the header
+workingHours_ft <- workingHours_ft %>%
+  hline(i = 1, part = "header", border = fp_border(color = "black", width = 2))
+
+# Add a bold bottom border to the last row of the table
+last_row <- nrow(workingHours_df)
+workingHours_ft <- workingHours_ft %>%
+  hline(i = last_row, part = "body", border = fp_border(color = "black", width = 2))
+
+# Manually specify alternating row colors
+# This step is a workaround for the direct approach
+row_indices <- seq_len(nrow(workingHours_df))
+even_rows <- row_indices %% 2 == 0
+odd_rows <- !even_rows
+
+# Apply zebra striping
+workingHours_ft <- workingHours_ft %>%
+  bg(i = odd_rows, bg = "#e6e6e6", part = "body") %>%
+  bg(i = even_rows, bg = "white", part = "body")
+
+# Adjust Width
+workingHours_ft <- workingHours_ft %>%
+  width(j = c("Metric", "Low", "Average", "High"), width = 2)
+
+### Definitions
+workHours_table_location <- ph_location(
+  left = 2.67,
+  top = 1.73,
+  height = 2,
+  width = 8,
+  newlabel = "workHours_description_location"
+)
+workHours_description_location <- ph_location(
+  left = .91,
+  top = 2.97,
+  height = 3.67,
+  width = 11.52,
+  newlabel = "workHours_description_location"
+)
+
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Workday Analysis")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = workingHours_ft, location = workHours_table_location) %>% 
+          ph_with(value = fpar(
+                          ftext(text = workHours_description, prop = slide_wide_descriptionStyle)),
+                          location = workHours_description_location)
+
+###################################################################################################################
+######################################## Workday Analysis: Comparison
+
+### Definitions
+## Top-half of slide
+workHours_comparison_table1_label_descriptionStyle <- fp_text(bold = TRUE, color = "black", font.size = 24, font.family = "Calibri")
+workHours_comparison_table1_label_location <- ph_location(
+  left = 1.37,
+  top = 2.2,
+  height = 1.1,
+  width = 2.29,
+  newlabel = "workHours_comparison_table1_label_location"
+) # label
+workHours_comparison_table1_location <- ph_location(
+  left = 4.12,
+  top = 1.98,
+  height = 2,
+  width = 8,
+  newlabel = "workHours_comparison_table1_location"
+) # table
+workHours_comparison_description1_location <- ph_location(
+  left = .91,
+  top = 3.2,
+  height = 1.1,
+  width = 11.52,
+  newlabel = "workHours_comparison_description1_location"
+) # description
+workHours_line_location <- ph_location(
+  left = 1,
+  top = 1,
+  width = 4,
+  height = 3,
+  newlabel = "",
+  bg = NULL,
+  rotation = NULL,
+  ln = NULL,
+) # Black Line
+## Bottom-half of slide
+workHours_comparison_table2_label_location <- ph_location(
+  left = 1.14,
+  top = 4.74,
+  height = 1.1,
+  width = 2.74,
+  newlabel = "workHours_comparison_table1_label_location"
+) # label
+workHours_comparison_table2_location <- ph_location(
+  left = 4.12,
+  top = 4.54,
+  height = 2,
+  width = 11.52,
+  newlabel = "workHours_comparison_table2_location"
+) # table
+workHours_comparison_description2_location <- ph_location(
+  left = .91,
+  top = 5.75,
+  height = 1.1,
+  width = 11.52,
+  newlabel = "workHours_comparison_description2_location"
+) # description
+
+sp_line(color = "black", lwd = 3)
+
+# workHours_line_location <- ph_location(
+#   left = 1,
+#   top = 1,
+#   width = 4,
+#   height = 3,
+#   newlabel = "",
+#   bg = NULL,
+#   rotation = NULL,
+#   ln = NULL,
+# )
+
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Workday Comparative Analysis")),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(
+                              fp_p = fp_par(text.align = "center"),
+                              ftext(text = "Fee Quadrant Analysis", 
+                              prop = workHours_comparison_table1_label_descriptionStyle)),
+                              location = workHours_comparison_table1_label_location) %>% 
+          ph_with(value = workingHours_ft, location = workHours_comparison_table1_location) %>% 
+          ph_with(value = fpar(
+                              ftext(text = workHours_comparison_description1, prop = slide_wide_descriptionStyle)),
+                              location = workHours_comparison_description1_location)  %>% 
+          ph_with(value = fpar(
+                              fp_p = fp_par(text.align = "center"),
+                              ftext(text = "Fee & Prodoscore Group Analysis", 
+                              prop = workHours_comparison_table1_label_descriptionStyle)),
+                              location = workHours_comparison_table2_label_location) %>% 
+          ph_with(value = workingHours_ft, location = workHours_comparison_table2_location) %>% 
+          ph_with(value = fpar(
+                              ftext(text = workHours_comparison_description2, prop = slide_wide_descriptionStyle)),
+                              location = workHours_comparison_description2_location)
+# creatinine - Kidney function
+###################################################################################################################
+######################################## Divider Slide: Conclusion
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "CONCLUSION", prop = divider_style)),
+                          location = divider_title_location)
+
+###################################################################################################################
+######################################## Conclusion
+### Definitions
+conclusion_description_location <- ph_location(
+  left = .55,
+  top = 1.65,
+  height = 5,
+  width = 12,
+  newlabel = "conclusion_description_location"
+)
+
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Strategic Path Forward")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = conclusion_description, location = conclusion_description_location)
+
+###################################################################################################################
+######################################## Appendix
+my_ppt <- add_slide(my_ppt,
+                    layout = "divider_white",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = "APPENDIX", prop = divider_style)),
+                          location = divider_title_location)
+
+###################################################################################################################
+######################################## Appendix: Tables
+### Definitions
+additional_table1_location <- ph_location(
+  left = 1,
+  top = 1.75,
+  height = 5,
+  width = 7,
+  newlabel = "table1_location"
+)
+additional_table2_location <- ph_location(
+  left = 7.13,
+  top = 1.75,
+  height = 5,
+  width = 7,
+  newlabel = "table1_location"
+)
+
+### Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Additional Module Activity")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = ft, location = additional_table1_location) %>% 
+          ph_with(value = ft, location = additional_table2_location)
+
+###################################################################################################################
+### Testing
+testing_location <- ph_location_template(
+    left = .91,
+    top = 3.59,
+    width = 11.52,
+    height = 3.67,
+    newlabel = "",
+    type = "body",
+    id = 5
+    )
+
+my_ppt <- add_slide(my_ppt,
+                    layout = "general_mini_table",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = paste0("Testing123: ", top_2_roles_by_n_empls[2]))),
+                          location = ph_location_type("title")) %>%
+          ph_with(value = fpar(ftext(text = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters.
+
+Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.
+
+Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.")), 
+location = testing_location)
+
+######################################## Print PPT
+###### Final Print
+print(my_ppt, target = output_location)
+
+```
+
+
+
+
+####################################################
+####################################################
+####################################################
+####################################################
+####################################################
+####################################################
+####################################################
+
+
+###Notes
+```{r}
+
+#  pretty tables with package flextable, editable graphics with package rvg, ’Microsoft’
+# charts with package mschart.
+
+
+##### Delete Template Slides
+# Determine the number of slides in the template
+# total_slides <- length(slide_summary(my_ppt)$id)
+# 
+# # Remove all slides
+# for(i in total_slides:1) {
+#   my_ppt <- remove_slide(my_ppt, index = i)
+# }
+
+# # Remove all template slides 
+# for(i in 10:1) {
+#   my_ppt <- remove_slide(my_ppt, index = i)
+# }
+
+```
+
+
+
+
+### Cut Templates (use again later?)
+```{r}
+
+
+######################################## OLD
+######################################## Descriptives Density Plot:
+######################################## 2 Roles
+
+# ### Bar Plots
+# # Adjusted Plot 1: Count of observations by Species for Sepal.Length
+# bar_plot1 <- distribution_plots_function(data = comparison_data_analysis_score_analysis, roles_choice = top_2_roles_by_n_empls[1])
+# 
+# # Adjusted Plot 2: Count of observations by Species for Petal.Width
+# bar_plot2 <- distribution_plots_function(data = comparison_data_analysis_score_analysis, roles_choice = top_2_roles_by_n_empls[2])
+# 
+# 
+# ### Definitions
+# bar_plot1_location <- ph_location(
+#   left = .52,
+#   top = 1.48,
+#   height = 4.15,
+#   width = 5.79,
+#   newlabel = "density_plot1_location"
+# ) #Plot1
+# bar_plot2_location <- ph_location(
+#   left = 7.02,
+#   top = 1.48,
+#   height = 4.15,
+#   width = 5.79,
+#   newlabel = "density_plot2_location"
+# ) #Plot2
+# barPlot_description_location <- ph_location(
+#   left = .67,
+#   top = 5.63,
+#   height = 1.3,
+#   width = 12,
+#   newlabel = "density_description_location"
+# ) #description
+# 
+# #Write Roles Density Plot Slide
+# my_ppt <- add_slide(my_ppt,
+#                     layout = "general_leftContent_rightTable",
+#                     master = "Office Theme") %>% 
+#           ph_with(value = fpar(
+#                           ftext(text = paste0("Prodoscore™: ", top_2_roles_by_n_empls[1], " & ", top_2_roles_by_n_empls[2]))),
+#                           location = ph_location_type("title")) %>% 
+#           ph_with(value = bar_plot1, location = bar_plot1_location) %>% 
+#           ph_with(value = bar_plot2, location = bar_plot2_location) %>% 
+#           ph_with(value = productivitygroup_description_both_roles, 
+#                   location = barPlot_description_location)
+
+
+executiveDescription_rightTable <- paste0("Between March 4, 2024, and May 3, 2024, a review of 91 employees in 5 different roles across Levata was conducted. 
+
+Performance levels are categorized into two tiers: Met & Exceeded Quota (2024) and Below Quota (2024)
+
+Productivity levels are categorized into three tiers: low, average, and high. 
+- Employees with a productivity score of 56 or below were considered to have low productivity. 
+- Those with scores above 56 but below 74 were deemed to have average productivity. 
+- High productivity was attributed to employees with scores of 74 and above.
+")
+
+######################################## Executive Summary Slide: Right Side Table
+# Definitions
+executiveDescription_rightTable_style <- fp_text(bold = FALSE, color = "black", font.size = 13, font.family = "Arial")
+executiveDescription_rightTable_location <- ph_location(
+  left = .85,
+  top = 1.55,
+  height = 5,
+  width = 5.1,
+  newlabel = "executiveDescription_leftTable_location"
+)
+rightTable_title <- paste0(dom_2, " Sample")
+rightTable_title_style <- fp_text(bold = TRUE, color = "white", font.size = 15, font.family = "Arial")
+rightTable_title_location <- ph_location(
+  left = 6.75,
+  top = 1.82,
+  height = .6,
+  width = 5.55,
+  newlabel = "leftTable_title_location"
+)
+
+# Write Slide
+my_ppt <- add_slide(my_ppt,
+                    layout = "executive_leftContent_rightTable",
+                    master = "Office Theme") %>% 
+          ph_with(value = fpar(
+                          ftext(text = "Executive Summary")),
+                          location = ph_location_type("title")) %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(line_spacing = 1.15),
+                          ftext(text = executiveDescription_rightTable, prop = executiveDescription_rightTable_style)),
+                          location = executiveDescription_rightTable_location) %>% 
+          ph_with(value = fpar(
+                          fp_p = fp_par(text.align = "center"),
+                          ftext(text = rightTable_title, prop = rightTable_title_style)),
+                          location = rightTable_title_location)
+
+
+```
+
